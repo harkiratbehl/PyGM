@@ -3,9 +3,19 @@
 import ply.lex as lex
 import sys
 
+code = open(sys.argv[1],'r').read()
+if code[len(code)-1] != '\n':
+    code += '\n'
+semimode = False
+
+def setSemiMode():
+    global semimode
+    if code[lexer.lexpos] == '\n':
+        semimode = True
+
 # The following are the list of kwywords which are reserved in GoLang
 reserved_keywords = {
-    'break'    : 'BREAK',
+    'nil'      : 'NIL',
     'default'  : 'DEFAULT',
     'func'     : 'FUNC',
     'select'   : 'SELECT',
@@ -19,10 +29,8 @@ reserved_keywords = {
     'const'    : 'CONST',
     'if'       : 'IF',
     'type'     : 'TYPE',
-    'continue' : 'CONTINUE',
     'for'      : 'FOR',
     'import'   : 'IMPORT',
-    'return'   : 'RETURN',
     'var'      : 'VAR',
     'true'     : 'TRUE',
     'false'    : 'FALSE'
@@ -73,6 +81,7 @@ tokens = list(reserved_keywords.values()) + [
     'LCURLY',
     'RCURLY',
     'COMMA',
+    'DDD',
     'DOT',
     'SEMICOLON',
     'COLON',
@@ -85,14 +94,49 @@ tokens = list(reserved_keywords.values()) + [
     'FLOAT_LIT',
     'STRING_LIT',
 
-    #'UNICODE_DIGIT','UNICODE_LETTER',
+    # 'UNICODE_DIGIT','UNICODE_LETTER',
     # 'ESCAPED_CHAR', 'BYTE_VALUE', 'OCTAL_BYTE_VALUE', 'HEX_BYTE_VALUE',
     # 'UNDERSCORE'
     'NEWLINE',
-    'IDENTIFIER'
+    'IDENTIFIER',
+
+    'BREAK',
+    'CONTINUE',
+    'RETURN'
 ]
 
+t_ignore = ' \t'
+
+def t_COMMENT(t):
+    r'(/\*([^*]|\n|(\*+([^*/]|\n])))*\*+/)|(//.*)'
+    pass
+
+def t_BREAK(t):
+    r'break'
+    setSemiMode()
+    return t
+
+def t_CONTINUE(t):
+    r'continue'
+    setSemiMode()
+    return t
+
+def t_RETURN(t):
+    r'return'
+    setSemiMode()
+    return t
+
 # Note: We need to have tokens in such a way that the tokens like '==' should preceede the token '='
+def t_PLUS_PLUS(t):
+    r'(\+\+)'
+    setSemiMode()
+    return t
+
+def t_MINUS_MINUS(t):
+    r'(--)'
+    setSemiMode()
+    return t
+
 t_LS_EQ = r'(<<=)'
 t_RS_EQ = r'(>>=)'
 t_AND_OR_EQ = r'(&\^=)'
@@ -110,8 +154,6 @@ t_CARET_EQ = r'(\^=)'
 t_AMP_AMP = r'(&&)'
 t_OR_OR = r'(\|\|)'
 t_LT_MINUS  = r'(<-)'
-t_PLUS_PLUS = r'(\+\+)'
-t_MINUS_MINUS = r'(--)'
 t_EQ_EQ = r'(==)'
 t_NOT_EQ = r'(!=)'
 t_NOT = r'!'
@@ -119,12 +161,10 @@ t_LT_EQ = r'(<=)'
 t_GT_EQ = r'(>=)'
 t_ASSIGN_OP = r'(:=)'
 t_LSQUARE = r'\['
-t_RSQUARE = r'\]'
 t_LROUND = r'\('
-t_RROUND = r'\)'
 t_LCURLY = r'\{'
-t_RCURLY = r'\}'
 t_COMMA = r'\,'
+t_DDD = r'\.\.\.'
 t_DOT = r'\.'
 t_SEMICOLON = r'\;'
 t_COLON = r'\:'
@@ -142,35 +182,64 @@ t_MODULO = r'\%'
 t_OR = r'\|'
 t_CARET = r'\^'
 
-DECIMAL_DIGIT = r'[0-9]'
-DECIMALS = DECIMAL_DIGIT + DECIMAL_DIGIT + r'*'
-EXPONENT = r'(e|E)(\+|-)?' + DECIMALS
-OCTAL_DIGIT = r'[0-7]'
-HEX_DIGIT = r'[0-9A-Fa-f]'
+def t_HEX_LIT(t):
+    r'0[x|X][0-9A-Fa-f]+'
+    setSemiMode()
+    return t
 
-t_DECIMAL_LIT = r'[1-9]' + DECIMAL_DIGIT + r'*'
-t_OCTAL_LIT = r'0' + OCTAL_DIGIT + r'*'
-t_HEX_LIT = r'0[x|X]' + HEX_DIGIT + HEX_DIGIT + r'*'
-t_FLOAT_LIT = r'(' + DECIMALS + r'\.(' + DECIMALS + r')?(' + EXPONENT + r')?)|(' + DECIMALS + EXPONENT + r')|(\.' + DECIMALS + r'(' + EXPONENT + r')?)'
+def t_FLOAT_LIT(t):
+    r'([0-9]+\.([0-9]+)?((e|E)(\+|\-)?[0-9]+)?)|([0-9]+(e|E)(\+|\-)?[0-9]+)|(\.[0-9]+((e|E)(\+|\-)?[0-9]+)?)'
+    setSemiMode()
+    return t
+
+def t_OCTAL_LIT(t):
+    r'0[0-7]*'
+    setSemiMode()
+    return t
+
+def t_DECIMAL_LIT(t):
+    r'[1-9][0-9]*'
+    setSemiMode()
+    return t
+
+def t_RCURLY(t):
+    r'\}'
+    setSemiMode()
+    return t
+
+def t_RROUND(t):
+    r'\)'
+    setSemiMode()
+    return t
+
+def t_RSQUARE(t):
+    r'\]'
+    setSemiMode()
+    return t
 
 def t_STRING_LIT(t):
     r'(\"[^(\")]*\")|(\`[^(\`)]*\`)'
     t.value = t.value[1:-1]
+    setSemiMode()
     return t
-
-t_ignore = ' \t'
-
-def t_COMMENT(t):
-    r'(/\*([^*]|\n|(\*+([^*/]|\n])))*\*+/)|(//.*)'
-    pass
 
 def t_NEWLINE(t):
     r'\n+'
     t.lexer.lineno += len(t.value)
+    global semimode
+    if semimode:
+        semimode = False
+        o = lex.LexToken()
+        o.type = 'SEMICOLON'
+        o.value = ';'
+        o.lineno = t.lexer.lineno
+        o.lexpos = t.lexer.lexpos
+        return o
 
 def t_IDENTIFIER(t):
     r'[a-zA-Z_@][a-zA-Z_0-9]*'
     t.type = reserved_keywords.get(t.value, 'IDENTIFIER')
+    setSemiMode()
     return t
 
 def t_error(t):
@@ -178,7 +247,7 @@ def t_error(t):
     t.lexer.skip(1)
 
 lexer = lex.lex()
-lexer.input(open(sys.argv[1],'r').read())
+lexer.input(code)
 token_type_list = {}
 lexeme_list = {}
 
