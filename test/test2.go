@@ -1,14 +1,9 @@
 package main
 
-import (
-	"fmt"
-	"os"
-	"bufio"
-)
+import "fmt"
 
-func main(){
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter any input: ")
-	input, _ := reader.ReadString('\n')
-	fmt.Print(input)
+func main() {
+	a := 017 + 0x10 + 1.1 - 10
+	a += 1
+	b := true
 }
