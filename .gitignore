@@ -99,3 +99,14 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# Assembly files
+*.asm
+*.s
+*.m
+
+# Mac files
+*.DS_Store
+
+# all binaries
+bin/

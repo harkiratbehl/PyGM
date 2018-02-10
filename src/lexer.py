@@ -253,32 +253,33 @@ lexeme_list = {}
 
 tokens_more_than_once = ['IDENTIFIER']
 
-while 1:
-    tokens_generated = lexer.token()
-    if not tokens_generated:
-        break
-    token_name = tokens_generated.value
-    token_type = tokens_generated.type
+if __name__ == "__main__":
+    while 1:
+        tokens_generated = lexer.token()
+        if not tokens_generated:
+            break
+        token_name = tokens_generated.value
+        token_type = tokens_generated.type
 
-    if token_type not in token_type_list:
-        token_type_list[token_type]= 1
-        lexeme_list[token_type] = []
-        lexeme_list[token_type].append(token_name)
-    else:
-        if token_name not in lexeme_list[token_type]:
+        if token_type not in token_type_list:
+            token_type_list[token_type]= 1
+            lexeme_list[token_type] = []
             lexeme_list[token_type].append(token_name)
-            token_type_list[token_type] = token_type_list[token_type] + 1
         else:
-            if token_type not in tokens_more_than_once:
+            if token_name not in lexeme_list[token_type]:
+                lexeme_list[token_type].append(token_name)
                 token_type_list[token_type] = token_type_list[token_type] + 1
+            else:
+                if token_type not in tokens_more_than_once:
+                    token_type_list[token_type] = token_type_list[token_type] + 1
 
-print("Token"+" "*20+"Occurrances"+" "*22+"Lexemes")
-print("-"*65)
-
-for data in token_type_list:
-    sys.stdout.write("{:25s} {:>4s}".format(data, (str)(token_type_list[data])))
-    print("{:>35s}".format(lexeme_list[data][0]))
-    for lexlist in lexeme_list[data][1:]:
-        sys.stdout.write("{:>65s}\n".format(lexlist))
+    print("Token"+" "*20+"Occurrances"+" "*22+"Lexemes")
     print("-"*65)
+
+    for data in token_type_list:
+        sys.stdout.write("{:25s} {:>4s}".format(data, (str)(token_type_list[data])))
+        print("{:>35s}".format(lexeme_list[data][0]))
+        for lexlist in lexeme_list[data][1:]:
+            sys.stdout.write("{:>65s}\n".format(lexlist))
+        print("-"*65)
 

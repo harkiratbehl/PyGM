@@ -1,0 +1,6 @@
+1,=,a,2
+2,=,b,7
+3,+,a,a,b
+4,ifgotoleq,a,50,2
+5,return
+
