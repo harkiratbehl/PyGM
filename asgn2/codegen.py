@@ -3,6 +3,7 @@ from sys import argv
 from code import *
 from registers import *
 from symtb import *
+from translator import *
 
 #put into TAC
 #write nextuse
@@ -14,12 +15,12 @@ asmblycode = code()
 symtb = symtb()
 # regs = registers()
 
-def read_textfile(inputfile): #generates tac and symtb
+def read_textfile(inputfile): #generates tac and leaders and generate symbol table
 	file = open(inputfile,'r')
 	for line in file:
 		line= line.rstrip('\n')
 		tai=line.split(',')
-		Tac.addline(tai)
+		Tac.nextline(tai)
 		length=len(tai)
 		if tai[1] == 'ifgoto':#might need change
 			Tac.leaders.append(len(Tac.code)+1)
@@ -31,25 +32,33 @@ def read_textfile(inputfile): #generates tac and symtb
 
 	Tac.leaders = sorted(Tac.leaders, key=int)
 
-	symtb.fill_symtb(code)
+	print(Tac.code)
+	symtb.fill_symtb(Tac)
+	regs = registers()
+	regs.print_regdis()
 
-#def translator(tai): #converts and adds directly to the asmblycode
+def assmcodegen(Tac):
 
-def gencode(Tac):
+	#data region to handle global data and constants
+	asmblycode.nextline('.data')
+	for var in symtb.variables:
+		line='%s:\t.space 150'%var
+		asmblycode.nextline(line)
+	asmblycode.nextline('.text')
+	asmblycode.nextline('main:')
 
-	#for block i (basic-blcok local register allocator)
-	#make nextuse(symbol table)
-	#translate each statement
 
-	#block transition thing
 	for i in range(len(Tac.code)):
-		instruction = Tac.code[i]
-		tai = instruction.split(',')
-		# translator(tai)
-	# return(code)
+		tai = Tac.code[i]
+		#translator(tai)
+
+	#return(code)
+	asmblycode.printcode()
 
 if __name__ == '__main__':
-	inputfile = argv[1] #the tac text flie
+	inputfile = argv[1] #the tac text file
 	read_textfile(inputfile)
-	Tac.printcode()
-	# mipscode = gencode(Tac)
+	assmcodegen(Tac)
+
+	# Tac.printcode()
+	# mipscode = codegen(Tac)

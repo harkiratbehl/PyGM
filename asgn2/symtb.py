@@ -1,29 +1,37 @@
 import sys
-sys.path.insert(0,r'/Users/harkiratbehl/acads/sem10/CS335/PyGM/src')
 from collections import OrderedDict
-import lexer
+import numpy as np
 
-variables=[]
+#added nextuse
+#added address descriptor
 
 class symtb:
 	def __init__(self):
-		self.symtb = OrderedDict()
+		self.symtb = {}#OrderedDict()
 		self.nextuse = []
+		self.variables=[]
 
-	def get_variables(self,code):
-		variables = return_variables()
+	def get_variables(self,Tac):
+		#variables = return_variables()
+		self.variables = ['t1','a','t2','b','t3','t4','t5','t6']
 
-	def fill_symtb(self,code):
-		self.get_variables(code)
-		numoflines=len(code)
+	def fill_symtb(self,Tac):
+		self.get_variables(Tac)
+		numoflines=len(Tac.code)
 		#constructing fields for each variable
-		for var in variables:
-			self.symtb[var] = np.zeros(numoflines)
+		for var in self.variables:
+			self.symtb[var] = [1000*np.ones(numoflines),0] #second element is the name of the regiser
+
+
 		#going back from last line of block
-		for i in range(len(code)):
+		for i in range(numoflines):
 			j=numoflines-i-1
-			tai = code[j]
-			if tai[2] in self.symtb:
-				self.symtb[tai[2]][j] = 1
+			tai = Tac.code[j]
 			if tai[3] in self.symtb:
-				self.symtb[tai[3]][j] = 1
+				for r in range(0,j):
+					self.symtb[tai[3]][0][r] = j+1
+			if tai[4] in self.symtb:
+				for r in range(0,j):
+					self.symtb[tai[4]][0][r] = j+1
+
+		print(self.symtb)

@@ -5,7 +5,7 @@ class code:
 	def __init__(self):
 		self.code = []
 
-	def addline(self, line):
+	def nextline(self, line):
 		self.code.append(line)
 
 	def printcode(self):
