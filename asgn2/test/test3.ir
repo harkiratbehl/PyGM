@@ -1,4 +1,4 @@
-1,+,aa,aa,2
+1,+,aa,2,aa
 2,+,bb,aa,1
 3,*,cc,aa,bb
 4,print_int,cc,,

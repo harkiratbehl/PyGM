@@ -1,10 +1,10 @@
-1, =, b, 3
-2, =, a, 8
-3, +, b, b, a
-4, ifgoto, <=, b, 30, 2
-5, call, iosb
-6, exit
-7, function, iosb
-8, /, b, b, a
-9, print, b
-10, return
+1,=,b,3,
+2,=,a,8,
+3,+,b,b,a
+4,ifgotolteq,b,30,2
+5,call,iosb,,
+6,exit
+7,function,iosb,,
+8,/,b,b,a
+9,print,b,,
+10,return

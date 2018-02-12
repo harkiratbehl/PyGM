@@ -38,6 +38,7 @@ class symbol_table:
         for i in range(line_count):
             j = line_count - i - 1
             three_address_instr = three_address_code.code[j]
+            # print(three_address_instr)
             if three_address_instr[3] in self.symbol_table:
                 for r in range(0, j):
                     self.symbol_table[three_address_instr[3]][0][r] = j+1
