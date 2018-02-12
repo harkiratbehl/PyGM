@@ -44,26 +44,26 @@ def read_textfile(input_file): #generates tac and leaders and generate symbol ta
 
 def assmcodegen(tac):
     # data region to handle global data and constants
-    asmblycode.nextline('.data')
+    assembly_code.nextline('.data')
     for var in symbol_table.variables:
         line='%s:\t.space 150'%var
-        asmblycode.nextline(line)
-    asmblycode.nextline('.text')
-    asmblycode.nextline('main:')
+        assembly_code.nextline(line)
+    assembly_code.nextline('.text')
+    assembly_code.nextline('main:')
 
     for i in range(len(tac.code)):
         three_add_instr = tac.code[i]
         # translator(three_add_instr)
 
     # return(code)
-    asmblycode.printcode()
+    assembly_code.printcode()
 
 if __name__ == '__main__':
     input_file = argv[1] # file conthree_add_instrning three address code
     print(input_file)
 
     read_textfile(input_file)
-    # assmcodegen(tac)
+    assmcodegen(tac)
 
     # tac.printcode()
     # mipscode = codegen(tac)
