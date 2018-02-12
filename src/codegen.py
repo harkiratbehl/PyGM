@@ -53,7 +53,7 @@ def assmcodegen(tac):
 
     for i in range(len(tac.code)):
         three_add_instr = tac.code[i]
-        # translator(three_add_instr)
+        translator(three_add_instr, symbol_table, regs)
 
     # return(code)
     assembly_code.printcode()

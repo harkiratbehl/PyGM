@@ -5,7 +5,7 @@ from lexer import *
 
 class symbol_table:
     def __init__(self):
-        self.symbol_table = {} # OrderedDict()
+        self.symbol_table = dict() # OrderedDict()
         self.next_use = []
         self.variables = []
         self.max_line_no = 1000000
