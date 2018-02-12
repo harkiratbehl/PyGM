@@ -284,7 +284,7 @@ class lexer_pygm():
         self.token_type_list = token_type_list
         self.identifiers = self.lexeme_list['IDENTIFIER']
 
-    def print(self):
+    def print_lexemes(self):
         lexeme_list = self.lexeme_list
         token_type_list = self.token_type_list
         print("Token"+" "*20+"Occurrances"+" "*22+"Lexemes")
