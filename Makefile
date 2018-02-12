@@ -5,7 +5,8 @@ all:
 
 codegen:
 	mkdir -p bin
-	cp src/codegen.py bin/codegen
+	cp src/*.py bin/
+	cp bin/codegen.py bin/codegen
 	chmod +x bin/codegen
 
 lexer:

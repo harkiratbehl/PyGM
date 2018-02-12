@@ -17,6 +17,8 @@ assembly_code = code()
 symbol_table = symbol_table()
 regs = registers()
 
+end_main = 0
+
 def read_textfile(input_file): #generates tac and leaders and generate symbol table
     inp = open(input_file, 'r')
     for line in inp:
@@ -31,7 +33,6 @@ def read_textfile(input_file): #generates tac and leaders and generate symbol ta
             print("Incorrect Instruction")
             print(three_add_instr)
             return 1
-
 
         if three_add_instr[1] == 'ifgotoeq' or three_add_instr[1] == 'ifgotoneq' or three_add_instr[1] == 'ifgotolt' or three_add_instr[1] == 'ifgotogt' or three_add_instr[1] == 'ifgotolteq' or three_add_instr[1] == 'ifgotolteq':
             # might need change
@@ -68,14 +69,11 @@ def assmcodegen(tac):
             error=1
             print(three_add_instr)
 
-    assembly_code.nextline('li $v0, 10')
-    assembly_code.nextline('syscall')
-
     # return(code)
     return error
 
 def translator(three_address_instr, symbol_table, regs):
-
+    global end_main
     # parse three_address_instr
     lineno = int(three_address_instr[0])
     op = three_address_instr[1]
@@ -122,8 +120,8 @@ def translator(three_address_instr, symbol_table, regs):
         assembly_code.nextline('mfhi ' + reg3)#HI
         error=0
 
+############## Integer IO
 
-##############  IO
     if op == 'print_int':
         reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
         assembly_code.nextline('li $v0, 1')
@@ -137,11 +135,6 @@ def translator(three_address_instr, symbol_table, regs):
         assembly_code.nextline('syscall')
         assembly_code.nextline('move ' + reg1 + ', $v0')
         error=0
-        
-    # if op == 'print_string':
-
-
-    # if op == 'scan_string':
 
 ################ UNARY OPERATORS
 
@@ -159,7 +152,6 @@ def translator(three_address_instr, symbol_table, regs):
         assembly_code.nextline('sub ' + reg2 + ', ' + reg2 + ', ' + reg1)
         error=0
 
-
     if op == '*=':
         #in case of this also it will take a register for the destination variable and it will be initialized to its value in the data declaration
         reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
@@ -167,7 +159,6 @@ def translator(three_address_instr, symbol_table, regs):
         assembly_code.nextline('mult ' + reg2 + ', ' + reg1)
         assembly_code.nextline('mflo ' + reg2)
         error=0
-
 
     if op == '/=':
         #in case of this also it will take a register for the destination variable and it will be initialized to its value in the data declaration
@@ -184,8 +175,6 @@ def translator(three_address_instr, symbol_table, regs):
         assembly_code.nextline('div ' + reg2 + ', ' + reg1)
         assembly_code.nextline('mfhi ' + reg2)#HI
         error=0
-
-    
 
 ############## LOGICAL
 
@@ -207,7 +196,7 @@ def translator(three_address_instr, symbol_table, regs):
         reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
         assembly_code.nextline('and ' + reg3 + ', ' + reg1 + ', ' + reg2)
         error=0
- 
+
     #A
     if op == '||':
         reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
@@ -215,10 +204,6 @@ def translator(three_address_instr, symbol_table, regs):
         reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
         assembly_code.nextline('or ' + reg3 + ', ' + reg1 + ', ' + reg2)
         error=0
- 
-    
- 
-    
 
     if op == '^': ####
         reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
@@ -240,7 +225,7 @@ def translator(three_address_instr, symbol_table, regs):
         reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
         assembly_code.nextline('sle ' + reg3 + ', ' + reg1 + ', ' + reg2)
         error=0
-   
+
     if op == '>=':
         reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
         reg2 = regs.getreg(src2, symbol_table, lineno, assembly_code)
@@ -261,7 +246,7 @@ def translator(three_address_instr, symbol_table, regs):
         reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
         assembly_code.nextline('slt ' + reg3 + ', ' + reg1 + ', ' + reg2)
         error=0
- 
+
     if op == '>':
         reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
         reg2 = regs.getreg(src2, symbol_table, lineno, assembly_code)
@@ -272,7 +257,15 @@ def translator(three_address_instr, symbol_table, regs):
     if op == '=':
         #in case of this also it will take a register for the destination variable and it will be initialized to its value in the data declaration
         reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('li ' + reg1 + ', ' + src1)
+        reg2 = regs.getreg(src1, symbol_table, lineno, assembly_code)
+        assembly_code.nextline('move ' + reg1 + ', ' + reg2)
+        error=0
+
+    if op == ':=':
+        #in case of this also it will take a register for the destination variable and it will be initialized to its value in the data declaration
+        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
+        reg2 = regs.getreg(dest, symbol_table, lineno, assembly_code)
+        assembly_code.nextline('move ' + reg1 + ', ' + reg2)
         error=0
 
     if op == '!': #####
@@ -283,10 +276,9 @@ def translator(three_address_instr, symbol_table, regs):
         assembly_code.nextline('xor ' + reg3 + ', ' + reg2 + ', ' + reg1)
         error=0
 
-
-#########################
-
-
+######################### Conditionals
+# Note: We haven't handled switch case here
+# We will take care of it while parsing
 
     if op == 'ifgotoeq':
         reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
@@ -335,8 +327,7 @@ def translator(three_address_instr, symbol_table, regs):
         assembly_code.nextline('j ' + target)
         error=0
 
-
-####################.  LOOPS
+####################  Loops
 
     if op == 'break':
         target = 'Line_' + str(dest)
@@ -348,27 +339,58 @@ def translator(three_address_instr, symbol_table, regs):
         assembly_code.nextline('j ' + target)
         error=0
 
-    # if op == 'for':
+    if op == 'for':
+        error=0
     #this is the format of tac for for loop
         # L: if (i>=9) goto END_FOR
         # i=i+1
         # goto L:
         # END_FOR:
 
+#################### FUNCTIONS
+
+    if op == 'return':
+        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
+        assembly_code.nextline('move $v0, ' + reg1)
+        assembly_code.nextline('lw $ra, ($sp)')
+        assembly_code.nextline('addiu $sp, $sp, 4')
+        assembly_code.nextline('jr $ra')
+        error=0
+
+    if op == 'return_value':
+        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
+        assembly_code.nextline('move ' + reg1 + ', $v0')
+        error=0
+
+    if op == 'func':
+        if end_main == 0:
+            assembly_code.nextline('li $v0, 10')
+            assembly_code.nextline('syscall')
+            end_main = 1
+
+        assembly_code.nextline(dest + '1:')
+        assembly_code.nextline('sub $sp, $sp, 4')
+        assembly_code.nextline('sw $ra, ($sp)')
+
+        error=0
+
+    if op == 'call':
+        assembly_code.nextline('jal ' + dest + '1')
+        error=0
+
     return error
 
-
 if __name__ == '__main__':
-    input_file = argv[1] # file conthree_add_instrning three address code
+    input_file = argv[1] # file containing the three address code
 
     errora = read_textfile(input_file)
-    if errora !=1:
+    if errora != 1:
         error = assmcodegen(tac)
         if error == 0:
+            if end_main == 0:
+                assembly_code.nextline('li $v0, 10')
+                assembly_code.nextline('syscall')
             assembly_code.printcode()
         else:
             print('Unidentified operator')
-
-    # tac.printcode()
-    # mipscode = codegen(tac)
 
