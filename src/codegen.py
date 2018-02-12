@@ -24,46 +24,100 @@ def read_textfile(input_file): #generates tac and leaders and generate symbol ta
         three_add_instr = line.split(',')
         tac.nextline(three_add_instr)
         length = len(three_add_instr)
-        if three_add_instr[1] == 'ifgoto': # might need change
-            tac.leaders.append(len(tac.code)+1)
-            tac.leaders.append(int(three_add_instr[length-1]))
+        if three_add_instr[1] == 'ifgotoeq': # might need change
+            tac.leaders.append(len(tac.code))
+            tac.leaders.append(int(three_add_instr[4])-1)
 
         if three_add_instr[1] == 'goto' or three_add_instr[1] == 'break' or three_add_instr[1] == 'continue':
             tac.leaders.append(len(tac.code) + 1)
-            tac.leaders.append(int(three_add_instr[2]))
+            tac.leaders.append(int(three_add_instr[4]))
 
     tac.leaders = sorted(tac.leaders, key=int)
 
-    print(tac.code)
+    # print(tac.code)
 
     symbol_table.fill_symbol_table(tac)
-    symbol_table.print_symbol_table()
 
     # regs = registers()
-    regs.print_regdis()
 
 def assmcodegen(tac):
     # data region to handle global data and constants
-    assembly_code.nextline('.data')
+    assembly_code.nextline('\t.data')
     for var in symbol_table.variables:
-        line='%s:\t.space 150'%var
+        line='%s:\t.word 0'%var
         assembly_code.nextline(line)
-    assembly_code.nextline('.text')
+    assembly_code.nextline('\t.text')
     assembly_code.nextline('main:')
 
     for i in range(len(tac.code)):
+        if i in tac.leaders:
+            assembly_code.nextline('Line_'+str(i+1)+':')
         three_add_instr = tac.code[i]
         translator(three_add_instr, symbol_table, regs)
+
+    assembly_code.nextline('li $v0, 10')
+    assembly_code.nextline('syscall')
 
     # return(code)
     assembly_code.printcode()
 
+def translator(three_address_instr, symbol_table, regs):
+    src1 = three_address_instr[3]
+    src2 = three_address_instr[4]
+    dest = three_address_instr[2]
+    op = three_address_instr[1]
+    lineno=int(three_address_instr[0])
+    if op == '+':
+        reg1 = regs.getreg(src1,symbol_table,lineno,assembly_code)
+        reg2 = regs.getreg(src2,symbol_table,lineno,assembly_code)
+        reg3 = regs.getreg(dest,symbol_table,lineno,assembly_code)
+        assembly_code.nextline('add '+reg3+', '+reg1+', '+reg2)
+    if op =='-':
+        reg1 = regs.getreg(src1,symbol_table,lineno,assembly_code)
+        reg2 = regs.getreg(src2,symbol_table,lineno,assembly_code)
+        reg3 = regs.getreg(dest,symbol_table,lineno,assembly_code)
+        assembly_code.nextline('sub '+reg3+', '+reg1+', '+reg2)
+    if op == '*':
+        reg1 = regs.getreg(src1,symbol_table,lineno,assembly_code)
+        reg2 = regs.getreg(src2,symbol_table,lineno,assembly_code)
+        reg3 = regs.getreg(dest,symbol_table,lineno,assembly_code)
+        assembly_code.nextline('mult '+reg1+', '+reg2)
+        assembly_code.nextline('mflo '+reg3)
+    if op =='/':
+        reg1 = regs.getreg(src1,symbol_table,lineno,assembly_code)
+        reg2 = regs.getreg(src2,symbol_table,lineno,assembly_code)
+        reg3 = regs.getreg(dest,symbol_table,lineno,assembly_code)
+        assembly_code.nextline('div '+reg1+', '+reg2)
+        assembly_code.nextline('mflo '+reg3)#LO
+    if op =='%':
+        reg1 = regs.getreg(src1,symbol_table,lineno,assembly_code)
+        reg2 = regs.getreg(src2,symbol_table,lineno,assembly_code)
+        reg3 = regs.getreg(dest,symbol_table,lineno,assembly_code)
+        assembly_code.nextline('div '+reg1+', '+reg2)
+        assembly_code.nextline('mfhi '+reg3)#HI
+    if op == 'print_int':
+        reg1 = regs.getreg(dest,symbol_table,lineno,assembly_code)
+        assembly_code.nextline('li $v0, 1')
+        assembly_code.nextline('move $a0, '+ reg1)
+        assembly_code.nextline('syscall')
+    if op == '=':
+        reg1 = regs.getreg(dest,symbol_table,lineno,assembly_code)
+        assembly_code.nextline('li '+reg1+', '+src1)
+    if op == 'ifogoteq':
+        reg1 = regs.getreg(dest,symbol_table,lineno,assembly_code)
+        reg2 = regs.getreg(src1,symbol_table,lineno,assembly_code)
+        target = 'Line_'+str(src2)
+        assembly_code.nextline('beq '+reg1+', '+reg2+', '+target)
+
+
 if __name__ == '__main__':
     input_file = argv[1] # file conthree_add_instrning three address code
-    print(input_file)
 
     read_textfile(input_file)
     assmcodegen(tac)
 
     # tac.printcode()
     # mipscode = codegen(tac)
+
+
+

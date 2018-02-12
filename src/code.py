@@ -14,6 +14,6 @@ class code:
 
 class three_address_code(code):
     def __init__(self):
-        self.leaders = [1]
+        self.leaders = [0]
         self.code = []
 

@@ -17,7 +17,7 @@ class symbol_table:
         # use lexer to get identifiers from three_address_code
         # hardcoded for testing
         code=''
-        print(three_address_code.code)
+        # print(three_address_code.code)
         for l in three_address_code.code:
             l = ",".join(l)
             code=code+l+'\n'
