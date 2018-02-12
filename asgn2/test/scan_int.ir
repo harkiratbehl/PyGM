@@ -1,0 +1,6 @@
+1,=,bb,3,
+2,=,ab,8,
+3,scan_int,cb,,
+4,+,bb,bb,cb
+5,ifgotolteq,bb,30,2
+6,print_int,cb,,
