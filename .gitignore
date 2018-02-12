@@ -110,3 +110,7 @@ ENV/
 
 # all binaries
 bin/
+
+# swap files
+*.swp
+

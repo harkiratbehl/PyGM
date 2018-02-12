@@ -1,6 +1,15 @@
 all:
 	make clean
-	mkdir bin
+	make lexer
+	make codegen
+
+codegen:
+	mkdir -p bin
+	cp src/codegen.py bin/codegen
+	chmod +x bin/codegen
+
+lexer:
+	mkdir -p bin
 	cp src/lexer.py bin/lexer
 	chmod +x bin/lexer
 
