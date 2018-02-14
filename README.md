@@ -3,8 +3,9 @@
 This is a to-be compiler for GoLang with Python as the implementation language and MIPS as the target language.
 
 In order to run the lexer, follow these steps:
-	1. cd asgn1
-	2. make
+
+	1. cd asgn1  
+	2. make  
 	3. bin/lexer test/test1.go
 
 In order to generate tokens for other input files, just replace the file being passed to the lexer.
@@ -18,8 +19,9 @@ Note:
 ---------------------------------------------------------------------------------------------------------------------------
 
 In order to run the Assembly Code Generator, follow these steps:
-	1. cd asgn2
-	2. make
+
+	1. cd asgn2  
+	2. make  
 	3. bin/codegen test/test01.ir
 
 In order to generate assembly code for other input files, just replace the file being passed to the code generator.
