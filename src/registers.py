@@ -9,7 +9,7 @@ class registers:
         # 8 + 8 registers in MIPS numbered from 8 - 15 and 16 - 23
         self.regs = ['$8', '$9', '$10', '$11', '$12', '$13', '$14', '$15', '$16', '$17', '$18', '$19', '$20', '$21', '$22', '$23']
         self.reg_dis = dict((el, 0) for el in self.regs)
-        self.nextuse = dict((el, 0) for el in self.regs)
+        self.lastuse = dict((el, -1) for el in self.regs)#stores the line no where this register was used last
 
     def print_regdis(self):
         print(self.reg_dis)
@@ -19,24 +19,24 @@ class registers:
         reg=''
         for key in self.reg_dis:
             a= symbol_table.symbol_table[self.reg_dis[key]][0][lineno-1]
-            if a>max:
+            if a>max and self.lastuse[key]<lineno:
                 max=a
                 reg = key
         return reg
 
-    def freereg(self):              #checks if any register is free and returns it
+    def freereg(self,lineno):              #checks if any register is free and returns it
         for reg in self.regs:
             # print(self.reg_dis[reg])
             if self.reg_dis[reg] == 0:
                 return reg
         for reg in self.regs:
-            if self.reg_dis[reg] == 1:#for registers used for constants
+            if self.reg_dis[reg] == 1 and self.lastuse[reg]<lineno:#for registers used for constants
                 return reg
         return 0
 
     def getemptyreg(self,lineno,symbol_table,assembly_code):
-        if self.freereg() != 0:
-            return self.freereg()
+        if self.freereg(lineno) != 0:
+            return self.freereg(lineno)
         else:
             # register spilling case
 
@@ -61,6 +61,7 @@ class registers:
     def getreg(self, var, symbol_table,lineno,assembly_code):
         if var in symbol_table.symbol_table:
             if symbol_table.symbol_table[var][1] != 0:
+                self.lastuse[symbol_table.symbol_table[var][1]] = lineno
                 return symbol_table.symbol_table[var][1]
             else:
                 arf = self.getemptyreg(lineno,symbol_table,assembly_code)
@@ -68,12 +69,14 @@ class registers:
                 self.reg_dis[arf]=var
                 line = 'lw ' + arf + ', ' + var
                 assembly_code.nextline(line)
+                self.lastuse[arf] = lineno
                 return arf
         else:               #assigning registr for constant
             arf = self.getemptyreg(lineno,symbol_table,assembly_code)
             self.reg_dis[arf]=1
             line = 'li ' + arf + ', ' + var
             assembly_code.nextline(line)
+            self.lastuse[arf] = lineno
             return arf
 
     def empty_all_registers(self, symbol_table):

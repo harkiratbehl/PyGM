@@ -30,3 +30,5 @@
 30,+,aa,aa,oo
 31,+,aa,aa,pp
 32,print_int,aa,,
+33,=,ab,2,
+34,print_int,ab,,
