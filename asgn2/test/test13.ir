@@ -1,3 +1,0 @@
-1,=,primes,{2,3,4},
-2,print_int,primes,,
-3,print_int,primes[0],,

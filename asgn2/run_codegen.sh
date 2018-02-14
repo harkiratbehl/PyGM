@@ -8,7 +8,7 @@ do
     bin/codegen test/test0${i}.ir > test/test0${i}.asm
 done
 
-for i in `seq 0 5`;
+for i in `seq 0 1`;
 do
     bin/codegen test/test1${i}.ir > test/test1${i}.asm
 done
