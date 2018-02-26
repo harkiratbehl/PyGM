@@ -439,6 +439,29 @@ def translator(three_address_instr, symbol_table, regs):
         assembly_code.nextline('jal func_' + dest)
         error = 0
 
+#################### READ/WRITE/GET ADDRESS
+
+    if op == 'read_add':
+        # read from src1 address to dest
+        # Similar to * operator or dereferencing
+        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
+        reg2 = regs.getreg(src1, symbol_table, lineno, assembly_code)
+        assembly_code.nextline('lw ' + reg1 + ', ' + '0(' + reg2+ ')')
+        error = 0
+
+    if op == 'write_add':
+        # write src1 to address dest
+        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
+        reg2 = regs.getreg(src1, symbol_table, lineno, assembly_code)
+        assembly_code.nextline('sw ' + reg1 + ', ' + '0(' + reg2+ ')')
+        error = 0
+
+    if op == 'get_val_at_add':
+        # write src1 to address dest
+        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
+        assembly_code.nextline('la ' + reg1 + ', ' + src1)
+        error = 0
+
     return error
 
 if __name__ == '__main__':
