@@ -1,490 +1,363 @@
 #!/usr/bin/python
 
+"""Generate Assembly code from 3AC"""
+
 import sys
-from sys import argv
-from code import *
-from registers import *
-from symbol_table import *
-# from translator import *
+from code import Code, ThreeAddressCode
+from registers import Registers
+from symbol_table import SymbolTable
 
-# put into TAC
-# write nextuse
-# write getreg
-# write translator
-
-tac = three_address_code()
-assembly_code = code()
-symbol_table = symbol_table()
-regs = registers()
+three_addr_code = ThreeAddressCode()
+assembly_code = Code()
+symbol_table = SymbolTable()
+registers = Registers()
+input_file = ''
 
 end_main = 0
 
-def read_textfile(input_file): #generates tac and leaders and generate symbol table
-    inp = open(input_file, 'r')
-    for line in inp:
+def read_input_file():
+    """Reads input_file;
+    generates the three_addr_code along with leaders;
+    populates generate symbol table as per three_addr_code"""
+
+    for line in open(input_file, 'r'):
         line = line.rstrip('\n')
-        three_add_instr = line.split(',')
-        tac.nextline(three_add_instr)
-        length = len(three_add_instr)
+        if line == '':
+            continue
+        three_addr_instr = line.split(',')
+        three_addr_code.add_line(three_addr_instr)
 
-        if len(three_add_instr) != 5:
+        if len(three_addr_instr) != 5:
             print("Incorrect size for the following instruction: ")
-            print(three_add_instr)
-            return 1
+            print(three_addr_instr)
+            return -1
 
-        if three_add_instr[0] == '':
+        if three_addr_instr[0] == '':
             print("Line number not given in the following instruction: ")
-            print(three_add_instr)
-            return 1
+            print(three_addr_instr)
+            return -1
 
         import re
-        if re.search(r'\D', three_add_instr[0]) != None:
+        if re.search(r'\D', three_addr_instr[0]) != None:
             print("Invalid line number given in the following instruction: ")
-            print(three_add_instr)
-            return 1
+            print(three_addr_instr)
+            return -1
 
-        if three_add_instr[1] == 'ifgotoeq' or three_add_instr[1] == 'ifgotoneq' or three_add_instr[1] == 'ifgotolt' or three_add_instr[1] == 'ifgotogt' or three_add_instr[1] == 'ifgotolteq' or three_add_instr[1] == 'ifgotolteq':
-            # might need change
-            tac.leaders.append(len(tac.code))
-            tac.leaders.append(int(three_add_instr[4])-1)
+        leader_generating_if_instr = []
+        leader_generating_if_instr += ['ifgotoeq']
+        leader_generating_if_instr += ['ifgotoneq']
+        leader_generating_if_instr += ['ifgotolt']
+        leader_generating_if_instr += ['ifgotolteq']
+        leader_generating_if_instr += ['ifgotogt']
+        leader_generating_if_instr += ['ifgotogteq']
 
-        if three_add_instr[1] == 'goto' or three_add_instr[1] == 'break' or three_add_instr[1] == 'continue':
-            tac.leaders.append(len(tac.code))
-            tac.leaders.append(int(three_add_instr[2])-1)
+        if three_addr_instr[1] in leader_generating_if_instr:
+            three_addr_code.add_leader(three_addr_code.length())
+            three_addr_code.add_leader(int(three_addr_instr[4]) - 1)
 
-        # if three_add_instr[1] == 'for':
-        #     tac.leaders.append(len(tac.code)+1)
+        leader_generating_other_instr = []
+        leader_generating_other_instr += ['goto']
+        leader_generating_other_instr += ['break']
+        leader_generating_other_instr += ['continue']
+        if three_addr_instr[1] in leader_generating_other_instr:
+            three_addr_code.add_leader(three_addr_code.length())
+            three_addr_code.add_leader(int(three_addr_instr[2]) - 1)
 
-    tac.leaders = sorted(tac.leaders, key=int)
-    # print(tac.code)
-    symbol_table.fill_symbol_table(tac)
+    three_addr_code.leaders = sorted(three_addr_code.leaders, key=int)
+    symbol_table.fill_symbol_table(three_addr_code)
+    return 0
 
-def assmcodegen(tac):
+def generate_assembly():
+    """Generate assembly code"""
+
     # data region to handle global data and constants
-    error = 0
-    assembly_code.nextline('\t.data')
-    assembly_code.nextline('newline:\t.asciiz "\n"')
+    assembly_code.add_line('\t.data')
+    assembly_code.add_line('newline:\t.asciiz "\n"')
+
     for var in symbol_table.variables:
-        line='%s:\t.word 0'%var
-        assembly_code.nextline(line)
-    assembly_code.nextline('\t.text')
-    assembly_code.nextline('main:')
+        line = '%s:\t.word 0' % var
+        assembly_code.add_line(line)
 
-    for i in range(len(tac.code)):
-        if i in tac.leaders:
-            assembly_code.nextline('Line_' + str(i + 1) + ':')
-        three_add_instr = tac.code[i]
-        error1 = translator(three_add_instr, symbol_table, regs)
-        if error1 == 1:
-            error = 1
-            print(three_add_instr)
+    assembly_code.add_line('\t.text')
+    assembly_code.add_line('main:')
 
-    # return(code)
-    return error
+    translator_error = 0
+    for i in range(three_addr_code.length()):
+        if i in three_addr_code.leaders:
+            assembly_code.add_line('Line_' + str(i + 1) + ':')
+        three_addr_instr = three_addr_code.code[i]
+        if translator(three_addr_instr) != 0:
+            translator_error = 1
+            print(three_addr_instr)
 
-def translator(three_address_instr, symbol_table, regs):
+    return translator_error
+
+def translator(three_addr_instr):
+    """Translate Three Address Instruction to Assembly"""
     global end_main
-    # parse three_address_instr
-    lineno = int(three_address_instr[0])
-    op = three_address_instr[1]
-    dest = three_address_instr[2]
-    src1 = three_address_instr[3]
-    src2 = three_address_instr[4]
-    error = 1
 
-    if op == '+':
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src2, symbol_table, lineno, assembly_code)
-        reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('add ' + reg3 + ', ' + reg1 + ', ' + reg2)
-        error = 0
+    # parse three_addr_instr
+    line_no = int(three_addr_instr[0])
+    instr_op = three_addr_instr[1]
 
-    if op =='-':
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src2, symbol_table, lineno, assembly_code)
-        reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('sub ' + reg3 + ', ' + reg1 + ', ' + reg2)
-        error = 0
+    dest = three_addr_instr[2]
+    src1 = three_addr_instr[3]
+    src2 = three_addr_instr[4]
 
-    if op == '*':
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src2, symbol_table, lineno, assembly_code)
-        reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('mult ' + reg1 + ', ' + reg2)
-        assembly_code.nextline('mflo ' + reg3)#LO 32
-        error = 0
-
-    if op =='/':
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src2, symbol_table, lineno, assembly_code)
-        reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('div ' + reg1 + ', ' + reg2)
-        assembly_code.nextline('mflo ' + reg3)#LO
-        error = 0
-
-    if op =='%':
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src2, symbol_table, lineno, assembly_code)
-        reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('div ' + reg1 + ', ' + reg2)
-        assembly_code.nextline('mfhi ' + reg3)#HI
-        error = 0
-
-############## Integer IO
-
-    if op == 'print_int':
-        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('li $v0, 1')
-        assembly_code.nextline('move $a0, ' + reg1)
-        assembly_code.nextline('syscall')
-        assembly_code.nextline('li $v0, 4')
-        assembly_code.nextline('la $a0, newline')
-        assembly_code.nextline('syscall')
-        error = 0
-
-    if op == 'scan_int':
-        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('li $v0, 5')
-        assembly_code.nextline('syscall')
-        assembly_code.nextline('move ' + reg1 + ', $v0')
-        error = 0
-
-################ UNARY OPERATORS
-
-    if op == '+=':
-        #in case of this also it will take a register for the destination variable and it will be initialized to its value in the data declaration
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('add ' + reg2 + ', ' + reg2 + ', ' + reg1)
-        error = 0
-
-    if op == '-=':
-        #in case of this also it will take a register for the destination variable and it will be initialized to its value in the data declaration
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('sub ' + reg2 + ', ' + reg2 + ', ' + reg1)
-        error = 0
-
-    if op == '*=':
-        #in case of this also it will take a register for the destination variable and it will be initialized to its value in the data declaration
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('mult ' + reg2 + ', ' + reg1)
-        assembly_code.nextline('mflo ' + reg2)
-        error = 0
-
-    if op == '/=':
-        #in case of this also it will take a register for the destination variable and it will be initialized to its value in the data declaration
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('div ' + reg2 + ', ' + reg1)
-        assembly_code.nextline('mflo ' + reg2)#HI
-        error = 0
-
-    if op == '%=':
-        #in case of this also it will take a register for the destination variable and it will be initialized to its value in the data declaration
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('div ' + reg2 + ', ' + reg1)
-        assembly_code.nextline('mfhi ' + reg2)#HI
-        error = 0
-
-    if op == '<<=':
-        #in case of this also it will take a register for the destination variable and it will be initialized to its value in the data declaration
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('sllv ' + reg2 + ', ' + reg2 + ', ' + reg1)
-        error = 0
-
-    if op == '>>=':
-        #in case of this also it will take a register for the destination variable and it will be initialized to its value in the data declaration
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('srlv ' + reg2 + ', ' + reg2 + ', ' + reg1)
-        error = 0
-
-    if op == '<<=':
-        #in case of this also it will take a register for the destination variable and it will be initialized to its value in the data declaration
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('sllv ' + reg2 + ', ' + reg2 + ', ' + reg1)
-        error = 0
-
-    if op == '>>=':
-        #in case of this also it will take a register for the destination variable and it will be initialized to its value in the data declaration
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('srlv ' + reg2 + ', ' + reg2 + ', ' + reg1)
-        error = 0
-
-############## LOGICAL
-
-    # and $t1, $t2, $t3    # $t1 = $t2 & $t3 (bitwise and)
-    # or  $t1, $t2, $t3    # $t1 = $t2 | $t3 (bitwise or)
-
-    # # set if equal:
-    # seq $t1, $t2, $t3    # $t1 = $t2 == $t3 ? 1 : 0
-
-    # # set if less than:
-    # slt $t1, $t2, $t3    # $t1 = $t2 < $t3 ? 1 : 0
-
-    # # set if less than or equal:
-    # sle $t1, $t2, $t3    # $t1 = $t2 <= $t3 ? 1 : 0
-
-    if op == '&&':
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src2, symbol_table, lineno, assembly_code)
-        reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('and ' + reg3 + ', ' + reg1 + ', ' + reg2)
-        error = 0
-
-    #A
-    if op == '||':
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src2, symbol_table, lineno, assembly_code)
-        reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('or ' + reg3 + ', ' + reg1 + ', ' + reg2)
-        error = 0
-
-    if op == '^': ####
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src2, symbol_table, lineno, assembly_code)
-        reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('xor ' + reg3 + ', ' + reg1 + ', ' + reg2)
-        error = 0
-
-    if op == '!=':
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src2, symbol_table, lineno, assembly_code)
-        reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('sne ' + reg3 + ', ' + reg1 + ', ' + reg2)
-        error = 0
-
-    if op == '<=':
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src2, symbol_table, lineno, assembly_code)
-        reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('sle ' + reg3 + ', ' + reg1 + ', ' + reg2)
-        error = 0
-
-    if op == '>=':
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src2, symbol_table, lineno, assembly_code)
-        reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('sge ' + reg3 + ', ' + reg1 + ', ' + reg2)
-        error = 0
-
-    if op == '==':
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src2, symbol_table, lineno, assembly_code)
-        reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('seq ' + reg3 + ', ' + reg1 + ', ' + reg2)
-        error = 0
-
-    if op == '<':
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src2, symbol_table, lineno, assembly_code)
-        reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('slt ' + reg3 + ', ' + reg1 + ', ' + reg2)
-        error = 0
-
-    if op == '>':
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src2, symbol_table, lineno, assembly_code)
-        reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('sgt ' + reg3 + ', ' + reg1 + ', ' + reg2)
-        error = 0
-
-    if op == '=':
-        #in case of this also it will take a register for the destination variable and it will be initialized to its value in the data declaration
-        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('move ' + reg1 + ', ' + reg2)
-        error = 0
-
-    if op == ':=':
-        #in case of this also it will take a register for the destination variable and it will be initialized to its value in the data declaration
-        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('move ' + reg1 + ', ' + reg2)
-        error = 0
-
-    if op == '!': #####
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src2, symbol_table, lineno, assembly_code)
-        reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('li ' + reg1 + ', 1')
-        assembly_code.nextline('xor ' + reg3 + ', ' + reg2 + ', ' + reg1)
-        error = 0
-
-    if op == '<<':
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src2, symbol_table, lineno, assembly_code)
-        reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('sllv ' + reg3 + ', ' + reg1 + ', ' + reg2)
-        error = 0
-
-    if op == '>>':
-        reg1 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src2, symbol_table, lineno, assembly_code)
-        reg3 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('srlv ' + reg3 + ', ' + reg1 + ', ' + reg2)
-        error = 0
-
-######################### Conditionals
-# Note: We haven't handled switch case here
-# We will take care of it while parsing
-
-    if op == 'ifgotoeq':
-        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        target = 'Line_' + str(src2)
-        assembly_code.nextline('beq ' + reg1 + ', ' + reg2 + ', ' + target)
-        error = 0
-
-    if op == 'ifgotoneq':
-        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        target = 'Line_' + str(src2)
-        assembly_code.nextline('bne ' + reg1 + ', ' + reg2 + ', ' + target)
-        error = 0
-
-    if op == 'ifgotolt':
-        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        target = 'Line_' + str(src2)
-        assembly_code.nextline('blt ' + reg1 + ', ' + reg2 + ', ' + target)
-        error = 0
-
-    if op == 'ifgotolteq':
-        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        target = 'Line_' + str(src2)
-        assembly_code.nextline('ble ' + reg1 + ', ' + reg2 + ', ' + target)
-        error = 0
-
-    if op == 'ifgotogt':
-        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        target = 'Line_' + str(src2)
-        assembly_code.nextline('bgt ' + reg1 + ', ' + reg2 + ', ' + target)
-        error = 0
-
-    if op == 'ifgotogteq':
-        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        target = 'Line_' + str(src2)
-        assembly_code.nextline('bge ' + reg1 + ', ' + reg2 + ', ' + target)
-        error = 0
-
-    if op == 'goto':
+    if instr_op == 'goto':
         target = 'Line_' + str(dest)
-        assembly_code.nextline('j ' + target)
-        error = 0
+        assembly_code.add_line('j ' + target)
+        return 0
 
-####################  Loops
-
-    if op == 'break':
+    if instr_op == 'break':
         target = 'Line_' + str(dest)
-        assembly_code.nextline('j ' + target)
-        error = 0
+        assembly_code.add_line('j ' + target)
+        return 0
 
-    if op == 'continue':
+    if instr_op == 'continue':
         target = 'Line_' + str(dest)
-        assembly_code.nextline('j ' + target)
-        error = 0
+        assembly_code.add_line('j ' + target)
+        return 0
 
-    if op == 'for':
-        error = 0
-    #this is the format of tac for for loop
-        # L: if (i>=9) goto END_FOR
-        # i=i+1
-        # goto L:
-        # END_FOR:
-
-#################### FUNCTIONS
-
-    if op == 'return':
-        if dest != '':
-            reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-            assembly_code.nextline('move $v0, ' + reg1)
-
-        assembly_code.nextline('lw $ra, ($sp)')
-        assembly_code.nextline('addiu $sp, $sp, 4')
-        assembly_code.nextline('lw $fp, ($sp)')
-        assembly_code.nextline('addiu $sp, $sp, 4')
-        assembly_code.nextline('jr $ra')
-        error = 0
-
-    if op == 'return_value':
-        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('move ' + reg1 + ', $v0')
-        error = 0
-
-    if op == 'func':
+    if instr_op == 'func':
         if end_main == 0:
-            assembly_code.nextline('li $v0, 10')
-            assembly_code.nextline('syscall')
+            assembly_code.add_line('li $v0, 10')
+            assembly_code.add_line('syscall')
             end_main = 1
 
-        assembly_code.nextline('func_' + dest + ':')
-        assembly_code.nextline('sub $sp, $sp, 4')
-        assembly_code.nextline('sw $fp, ($sp)')
-        assembly_code.nextline('sub $sp, $sp, 4')
-        assembly_code.nextline('sw $ra, ($sp)')
+        assembly_code.add_line('func_' + dest + ':')
+        assembly_code.add_line('sub $sp, $sp, 4')
+        assembly_code.add_line('sw $fp, ($sp)')
+        assembly_code.add_line('sub $sp, $sp, 4')
+        assembly_code.add_line('sw $ra, ($sp)')
+        return 0
 
-        error = 0
+    if instr_op == 'call':
+        assembly_code.add_line('jal func_' + dest)
+        return 0
 
-    if op == 'call':
-        assembly_code.nextline('jal func_' + dest)
-        error = 0
 
-#################### READ/WRITE/GET ADDRESS
+    # Using reg_dest
+    if dest != '':
+        reg_dest = registers.get_register(dest, symbol_table, line_no, assembly_code)
 
-    if op == 'read_add':
+    if instr_op == 'print_int':
+        assembly_code.add_line('li $v0, 1')
+        assembly_code.add_line('move $a0, ' + reg_dest)
+        assembly_code.add_line('syscall')
+        assembly_code.add_line('li $v0, 4')
+        assembly_code.add_line('la $a0, newline')
+        assembly_code.add_line('syscall')
+        return 0
+
+    if instr_op == 'scan_int':
+        assembly_code.add_line('li $v0, 5')
+        assembly_code.add_line('syscall')
+        assembly_code.add_line('move ' + reg_dest + ', $v0')
+        return 0
+
+    if instr_op == 'return':
+        if dest != '':
+            assembly_code.add_line('move $v0, ' + reg_dest)
+
+        assembly_code.add_line('lw $ra, ($sp)')
+        assembly_code.add_line('addiu $sp, $sp, 4')
+        assembly_code.add_line('lw $fp, ($sp)')
+        assembly_code.add_line('addiu $sp, $sp, 4')
+        assembly_code.add_line('jr $ra')
+        return 0
+
+    if instr_op == 'return_value':
+        assembly_code.add_line('move ' + reg_dest + ', $v0')
+        return 0
+
+    if instr_op == 'get_val_at_add':
+        # write src1 to address dest
+        assembly_code.add_line('la ' + reg_dest + ', ' + src1)
+        return 0
+
+
+    # Using reg_src1
+    if src1 != '':
+        reg_src1 = registers.get_register(src1, symbol_table, line_no, assembly_code)
+
+    if instr_op == '+=':
+        assembly_code.add_line('add ' + reg_dest + ', ' + reg_dest + ', ' + reg_src1)
+        return 0
+
+    if instr_op == '-=':
+        assembly_code.add_line('sub ' + reg_dest + ', ' + reg_dest + ', ' + reg_src1)
+        return 0
+
+    if instr_op == '*=':
+        assembly_code.add_line('mult ' + reg_dest + ', ' + reg_src1)
+        assembly_code.add_line('mflo ' + reg_dest)
+        return 0
+
+    if instr_op == '/=':
+        assembly_code.add_line('div ' + reg_dest + ', ' + reg_src1)
+        assembly_code.add_line('mflo ' + reg_dest) # HI
+        return 0
+
+    if instr_op == '%=':
+        assembly_code.add_line('div ' + reg_dest + ', ' + reg_src1)
+        assembly_code.add_line('mfhi ' + reg_dest) # HI
+        return 0
+
+    if instr_op == '<<=':
+        assembly_code.add_line('sllv ' + reg_dest + ', ' + reg_dest + ', ' + reg_src1)
+        return 0
+
+    if instr_op == '>>=':
+        assembly_code.add_line('srlv ' + reg_dest + ', ' + reg_dest + ', ' + reg_src1)
+        return 0
+
+    if instr_op == '=':
+        assembly_code.add_line('move ' + reg_dest + ', ' + reg_src1)
+        return 0
+
+    if instr_op == ':=':
+        assembly_code.add_line('move ' + reg_dest + ', ' + reg_src1)
+        return 0
+
+    if instr_op == 'ifgotoeq':
+        target = 'Line_' + str(src2)
+        assembly_code.add_line('beq ' + reg_dest + ', ' + reg_src1 + ', ' + target)
+        return 0
+
+    if instr_op == 'ifgotoneq':
+        target = 'Line_' + str(src2)
+        assembly_code.add_line('bne ' + reg_dest + ', ' + reg_src1 + ', ' + target)
+        return 0
+
+    if instr_op == 'ifgotolt':
+        target = 'Line_' + str(src2)
+        assembly_code.add_line('blt ' + reg_dest + ', ' + reg_src1 + ', ' + target)
+        return 0
+
+    if instr_op == 'ifgotolteq':
+        target = 'Line_' + str(src2)
+        assembly_code.add_line('ble ' + reg_dest + ', ' + reg_src1 + ', ' + target)
+        return 0
+
+    if instr_op == 'ifgotogt':
+        target = 'Line_' + str(src2)
+        assembly_code.add_line('bgt ' + reg_dest + ', ' + reg_src1 + ', ' + target)
+        return 0
+
+    if instr_op == 'ifgotogteq':
+        target = 'Line_' + str(src2)
+        assembly_code.add_line('bge ' + reg_dest + ', ' + reg_src1 + ', ' + target)
+        return 0
+
+    if instr_op == 'read_add':
         # read from src1 address to dest
         # Similar to * operator or dereferencing
-        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('lw ' + reg1 + ', ' + '0(' + reg2+ ')')
-        error = 0
+        assembly_code.add_line('lw ' + reg_dest + ', ' + '0(' + reg_src1+ ')')
+        return 0
 
-    if op == 'write_add':
+    if instr_op == 'write_add':
         # write src1 to address dest
-        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        reg2 = regs.getreg(src1, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('sw ' + reg1 + ', ' + '0(' + reg2+ ')')
-        error = 0
+        assembly_code.add_line('sw ' + reg_dest + ', ' + '0(' + reg_src1+ ')')
+        return 0
 
-    if op == 'get_val_at_add':
-        # write src1 to address dest
-        reg1 = regs.getreg(dest, symbol_table, lineno, assembly_code)
-        assembly_code.nextline('la ' + reg1 + ', ' + src1)
-        error = 0
 
-    return error
+    # Using reg_src2
+    if src2 != '':
+        reg_src2 = registers.get_register(src2, symbol_table, line_no, assembly_code)
+
+    if instr_op == '+':
+        assembly_code.add_line('add ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        return 0
+
+    if instr_op == '-':
+        assembly_code.add_line('sub ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        return 0
+
+    if instr_op == '*':
+        assembly_code.add_line('mult ' + reg_src1 + ', ' + reg_src2)
+        assembly_code.add_line('mflo ' + reg_dest) # LO 32
+        return 0
+
+    if instr_op == '/':
+        assembly_code.add_line('div ' + reg_src1 + ', ' + reg_src2)
+        assembly_code.add_line('mflo ' + reg_dest) # LO
+        return 0
+
+    if instr_op == '%':
+        assembly_code.add_line('div ' + reg_src1 + ', ' + reg_src2)
+        assembly_code.add_line('mfhi ' + reg_dest) # HI
+        return 0
+
+    if instr_op == '&&':
+        assembly_code.add_line('and ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        return 0
+
+    if instr_op == '||':
+        assembly_code.add_line('or ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        return 0
+
+    if instr_op == '^':
+        assembly_code.add_line('xor ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        return 0
+
+    if instr_op == '!=':
+        assembly_code.add_line('sne ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        return 0
+
+    if instr_op == '<=':
+        assembly_code.add_line('sle ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        return 0
+
+    if instr_op == '>=':
+        assembly_code.add_line('sge ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        return 0
+
+    if instr_op == '==':
+        assembly_code.add_line('seq ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        return 0
+
+    if instr_op == '<':
+        assembly_code.add_line('slt ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        return 0
+
+    if instr_op == '>':
+        assembly_code.add_line('sgt ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        return 0
+
+    if instr_op == '!':
+        assembly_code.add_line('li ' + reg_src1 + ', 1')
+        assembly_code.add_line('xor ' + reg_dest + ', ' + reg_src2 + ', ' + reg_src1)
+        return 0
+
+    if instr_op == '<<':
+        assembly_code.add_line('sllv ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        return 0
+
+    if instr_op == '>>':
+        assembly_code.add_line('srlv ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        return 0
+
+    return 1
 
 if __name__ == '__main__':
 
-    if len(argv) != 2:
+    if len(sys.argv) != 2:
         print('Usage: python /path/to/codegen.py /path/to/3AC.ir')
         sys.exit(1)
 
-    input_file = argv[1] # file containing the three address code
+    input_file = sys.argv[1] # file containing the three address code
 
     import os
-    if os.path.isfile(input_file) == False:
+    if os.path.isfile(input_file) is False:
         print('Input file ' + input_file + ' does not exist')
         sys.exit(1)
 
-    errora = read_textfile(input_file)
-    if errora != 1:
-        error = assmcodegen(tac)
-        if error == 0:
+    if read_input_file() == 0:
+        if generate_assembly() == 0:
             if end_main == 0:
-                assembly_code.nextline('li $v0, 10')
-                assembly_code.nextline('syscall')
-            assembly_code.printcode()
+                assembly_code.add_line('li $v0, 10')
+                assembly_code.add_line('syscall')
+            assembly_code.print_code()
         else:
             print('Unidentified operator in the above line(s)')
-

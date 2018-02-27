@@ -1,48 +1,58 @@
-import sys
-from collections import OrderedDict
-import numpy as np
-from lexer import *
+"""Defines the class SymbolTable"""
 
-class symbol_table:
+import sys
+from numpy import ones
+from lexer import Lexer
+
+class SymbolTable:
+    """Defines the Symbol Table"""
+
     def __init__(self):
+        """Initializes member variables"""
+
         self.symbol_table = dict() # OrderedDict()
+
         self.next_use = []
         self.variables = []
-        self.max_line_no = 1000000
+        self.max_line_no = sys.maxsize
 
     def print_symbol_table(self):
+        """Prints the symbol table"""
         print(self.symbol_table)
 
-    def get_variables(self, three_address_code):
-        # use lexer to get identifiers from three_address_code
-        # hardcoded for testing
-        code=''
-        # print(three_address_code.code)
-        for l in three_address_code.code:
-            l = ",".join(l)
-            code=code+l+'\n'
-        lexr=lexer_pygm(code)
-        lexr.lext()
-        self.variables = lexr.identifiers
+    def set_variables(self, three_address_code):
+        """Gets identifiers from lexer and sets them as variables
+        Hardcoded since we don't have the parser"""
+
+        input_code = ''
+        for line in three_address_code:
+            input_code += ','.join(line) + '\n'
+
+        lexer_obj = Lexer()
+        lexer_obj.set_code(input_code)
+
+        lexer_obj.lex_code()
+        self.variables = lexer_obj.lexemes['IDENTIFIER']
 
     def fill_symbol_table(self, three_address_code):
-        self.get_variables(three_address_code)
-        line_count = len(three_address_code.code)
+        """Populates the symbol table"""
+        self.set_variables(three_address_code.code)
+        line_count = three_address_code.length()
 
-        # constructing fields for each variable
-        # second element is the name of the regiser for the variable
+        # Initializing symbol_table values for each variable
         for var in self.variables:
-            self.symbol_table[var] = [self.max_line_no * np.ones(line_count), 0]
+            self.symbol_table[var] = [self.max_line_no * ones(line_count), 0]
 
-        # going back from last line of block
+        # traversing the three_address_code in reverse order
         for i in range(line_count):
             j = line_count - i - 1
             three_address_instr = three_address_code.code[j]
-            # print(three_address_instr)
-            if three_address_instr[3] in self.symbol_table:
-                for r in range(0, j):
-                    self.symbol_table[three_address_instr[3]][0][r] = j+1
-            if three_address_instr[4] in self.symbol_table:
-                for r in range(0, j):
-                    self.symbol_table[three_address_instr[4]][0][r] = j+1
 
+            var1 = three_address_instr[3]
+            var2 = three_address_instr[4]
+
+            for line_no in range(0, j):
+                if var1 in self.symbol_table:
+                    self.symbol_table[var1][0][line_no] = j + 1
+                if var2 in self.symbol_table:
+                    self.symbol_table[var2][0][line_no] = j + 1

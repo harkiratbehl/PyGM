@@ -11,7 +11,8 @@ codegen:
 
 lexer:
 	mkdir -p bin
-	cp src/lexer.py bin/lexer
+	cp src/*.py bin/
+	cp bin/lexer.py bin/lexer
 	chmod +x bin/lexer
 
 clean:

@@ -1,7 +1,6 @@
 1,=,i,6,
-2,for,,,
-3,ifgotogteq,i,9,7
-4,print_int,i,,
-5,+,i,i,1
-6,goto,2,,
-7,print_int,i,,
+2,ifgotogteq,i,9,7
+3,print_int,i,,
+4,+,i,i,1
+5,goto,2,,
+6,print_int,i,,
