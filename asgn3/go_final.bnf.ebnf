@@ -1,0 +1,179 @@
+SourceFile       = PackageClause ";" ImportDeclList TopLevelDeclList .
+ImportDeclList = empty | ImportDeclList ImportDecl ";" .
+TopLevelDeclList = empty | TopLevelDeclList TopLevelDecl ";" .
+
+PackageClause  = "package" identifier .
+TopLevelDecl  = Declaration | FunctionDecl | MethodDecl .
+
+ImportDecl       = "import" ImportSpecTopList .
+ImportSpecTopList = ImportSpec | "(" ImportSpecList ")" .
+ImportSpecList = empty | ImportSpecList ImportSpec ";" .
+ImportSpec       =  ImportSpecInit ImportPath .
+ImportSpecInit = empty | "." | identifier .
+ImportPath       = string_lit .
+
+Block = "{" StatementList "}" .
+StatementList = empty | StatementList Statement ";" .
+Statement = Declaration | SimpleStmt | ReturnStmt | Block | IfStmt | SwitchStmt | ForStmt .
+
+Declaration   = ConstDecl | TypeDecl | VarDecl .
+
+ConstDecl      = "const" ConstSpecTopList .
+ConstSpecTopList = ConstSpec | "(" ConstSpecList ")" .
+ConstSpecList = empty | ConstSpecList ConstSpec ";" .
+ConstSpec      = IdentifierList ConstSpecTail .
+ConstSpecTail = empty | TypeTop "=" ExpressionList .
+TypeTop = empty | Type .
+
+IdentifierList = identifier IdentifierBotList .
+IdentifierBotList = empty | IdentifierBotList "," identifier .
+ExpressionList = Expression ExpressionBotList .
+ExpressionBotList = empty | ExpressionBotList "," Expression .
+identifier = letter letterList .
+letterList = empty | letterList letter | letterList unicode_digit .
+letter        = unicode_letter | "_" .
+
+TypeDecl = "type" TypeSpecTopList .
+TypeSpecTopList = TypeSpec | "(" TypeSpecList  ")" .
+TypeSpecList = empty | TypeSpecList TypeSpec ";" .
+TypeSpec = AliasDecl | TypeDef .
+AliasDecl = identifier "=" Type .
+TypeDef = identifier Type .
+
+Type      = TypeName | TypeLit | "(" Type ")" .
+TypeName  = identifier | QualifiedIdent .
+QualifiedIdent = identifier "." identifier .
+TypeLit   = ArrayType | StructType | FunctionType .
+ArrayType   = "[" ArrayLength "]" ElementType .
+ArrayLength = Expression .
+ElementType = Type .
+StructType    = "struct" "{" FieldDeclList "}" .
+FieldDeclList = empty | FieldDeclList FieldDecl ";" .
+FieldDecl     = FieldDeclHead TagTop .
+TagTop = empty | Tag .
+FieldDeclHead = IdentifierList Type | EmbeddedField .
+EmbeddedField = starTop TypeName .
+starTop = empty | "*" .
+Tag           = string_lit .
+FunctionType   = "func" Signature .
+Signature      = Parameters ResultTop .
+ResultTop = empty | Result .
+Result         = Parameters | Type .
+Parameters     = "(" ParameterListTop ")" .
+ParameterListTop = empty | ParameterList commaTop .
+commaTop = empty | "," .
+ParameterList  = ParameterDecl ParameterDeclList .
+ParameterDeclList = empty | ParameterDeclList "," ParameterDecl .
+ParameterDecl  = ParameterDeclHead tripledotTop Type .
+tripledotTop = empty | "..." .
+ParameterDeclHead = empty | IdentifierList .
+
+VarDecl     = "var" VarSpecTopList .
+VarSpecTopList = VarSpec | "(" VarSpecList ")" .
+VarSpecList = empty | VarSpecList VarSpec ";" .
+VarSpec     = IdentifierList VarSpecTail .
+VarSpecTail = Type VarSpecMid | "=" ExpressionList .
+VarSpecMid = empty | "=" ExpressionList .
+
+FunctionDecl = "func" FunctionName FunctionDeclTail .
+FunctionDeclTail = Function | Signature .
+FunctionName = identifier .
+Function     = Signature FunctionBody .
+FunctionBody = Block .
+
+MethodDecl = "func" Receiver MethodName FunctionDeclTail .
+Receiver   = Parameters .
+
+SimpleStmt = ExpressionStmt | Assignment | ShortVarDecl .
+ExpressionStmt = Expression 
+ShortVarDecl = IdentifierList ":=" ExpressionList .
+Assignment = ExpressionList assign_op ExpressionList .
+assign_op = addmul_op "=" .
+addmul_op = empty | add_op | mul_op .
+
+IfStmt = "if" SimpleStmtBot Expression Block elseBot .
+SimpleStmtBot = empty | SimpleStmt ";" .
+elseBot = empty | "else" elseTail .
+elseTail = IfStmt | Block .
+SwitchStmt = ExprSwitchStmt .
+ExprSwitchStmt = "switch" SimpleStmtBot ExpressionBot "{" ExprCaseClauseList "}" .
+ExprCaseClauseList = empty | ExprCaseClauseList ExprCaseClause .
+ExprCaseClause = ExprSwitchCase ":" StatementList .
+ExprSwitchCase = "case" ExpressionList | "default" .
+ForStmt = "for" ExpressionBot Block .
+ExpressionBot = empty | Expression .
+
+ReturnStmt = "return" ExpressionListBot .
+ExpressionListBot = empty | ExpressionList .
+
+Expression = UnaryExpr | Expression binary_op Expression .
+UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
+
+binary_op  = "||" | "&&" | rel_op | add_op | mul_op .
+rel_op     = "==" | "!=" | "<" | "<=" | ">" | ">=" .
+add_op     = "+" | "-" | "|" | "^" .
+mul_op     = "*" | "/" | "%" | "<<" | ">>" | "&" | "&^" .
+
+unary_op   = "+" | "-" | "!" | "^" | "*" | "&" | "<-" .
+
+PrimaryExpr =
+	Operand |
+	PrimaryExpr Selector |
+	PrimaryExpr Index |
+	PrimaryExpr Arguments .
+
+Operand     = Literal | OperandName | MethodExpr | "(" Expression ")" .
+Literal     = BasicLit | FunctionLit .
+BasicLit    = int_lit | float_lit | string_lit .
+
+int_lit     = decimal_lit | octal_lit | hex_lit .
+decimal_lit = decimal_litHead decimal_digitList .
+decimal_litHead = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" .
+decimal_digitList = empty | decimal_digitList decimal_digit .
+octal_lit   = "0" octal_digitList .
+octal_digitList = empty | octal_digitList octal_digit .
+hex_lit     = "0" xHead hex_digit hex_digitList .
+xHead = "x" | "X" .
+hex_digitList = empty | hex_digitList hex_digit .
+
+float_lit = decimals "." decimalsHead exponentHead |
+            decimals exponent |
+            "." decimals exponentHead .
+decimalsHead = empty | decimals .
+exponentHead = empty | exponent .
+decimals  = decimal_digit decimal_digitList .
+exponent  = eHead plusHead decimals .
+eHead = "e" | "E" .
+plusHead = empty | "+" | "-" .
+
+string_lit             = raw_string_lit | interpreted_string_lit .
+raw_string_lit         = "`" raw_string_litHead "`" .
+raw_string_litHead = empty | raw_string_litHead unicode_char | raw_string_litHead newline .
+interpreted_string_lit = `"` interpreted_string_litHead `"` .
+interpreted_string_litHead = empty | interpreted_string_litHead unicode_value | interpreted_string_litHead byte_value .
+
+OperandName = identifier .
+FunctionLit = "func" Function .
+MethodExpr    = ReceiverType "." MethodName .
+ReceiverType  = TypeName | "(" "*" TypeName ")" | "(" ReceiverType ")" .
+Selector       = "." identifier .
+Index          = "[" Expression "]" .
+Arguments      = "(" ArgumentsHead ")" .
+ArgumentsHead = empty | ArgumentsHeadMid tripledotTop commaTop .
+ArgumentsHeadMid = ExpressionList | Type "," ExpressionList | Type.
+
+unicode_digit  = /* a Unicode code point classified as "Number, decimal digit" */ 
+unicode_letter = /* a Unicode code point classified as "Letter" */
+decimal_digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" .
+octal_digit   = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" .
+hex_digit   = "0" … "9" | "A" … "F" | "a" … "f"
+unicode_char   = /* an arbitrary Unicode code point except newline */
+newline        = /* the Unicode code point U+000A */
+unicode_value    = unicode_char | little_u_value | big_u_value | escaped_char
+little_u_value   = `\` "u" hex_digit hex_digit hex_digit hex_digit .
+big_u_value      = `\` "U" hex_digit hex_digit hex_digit hex_digit hex_digit hex_digit hex_digit hex_digit
+escaped_char     = `\` escaped_charTail .
+escaped_charTail = "a" | "b" | "f" | "n" | "r" | "t" | "v" | `\` | "'" | `"` .
+byte_value       = octal_byte_value | hex_byte_value
+octal_byte_value = `\` octal_digit octal_digit octal_digit 
+hex_byte_value   = `\` "x" hex_digit hex_digit 
