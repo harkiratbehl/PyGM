@@ -13,27 +13,57 @@ from lexer import tokens
 ##################################### RULES #####################################
 #################################################################################
 
+parsed=[]
+
+precedence = (
+    ('left','IDENTIFIER'),
+    ('left','ASSIGN_OP'),
+    ('left','COMMA'),
+    ('left','LSQUARE'),
+    ('left','RSQUARE'),
+    ('left','LCURLY'),
+    ('left','RCURLY'),
+    ('left','DDD'),
+    ('left','DOT'),
+    ('left','SEMICOLON'),
+    ('left','COLON'),
+    ('left','SINGLE_QUOTES'),
+    ('left','DOUBLE_QUOTES'),
+    ('left','DECIMAL_LIT'),
+    ('left','OCTAL_LIT'),
+    ('left','HEX_LIT'),
+    ('left','FLOAT_LIT'),
+    ('left','STRING_LIT'),
+    ('left','NEWLINE'),
+    ('left','BREAK'),
+    ('left','CONTINUE'),
+    ('left','RETURN'),
+    ('left','RROUND'),
+    ('left','LROUND'),
+    ('left', 'OR_OR'),
+    ('left', 'AMP_AMP'),
+    ('left', 'EQ_EQ', 'NOT_EQ','LT','LT_EQ','GT','GT_EQ'),
+    ('left', 'PLUS', 'MINUS','OR','CARET'),
+    ('left', 'STAR', 'DIVIDE','MODULO','AMP','AND_OR','LS','RS'),
+)
+
 def p_SourceFile(p):
-    '''SourceFile : PackageClause SEMICOLON ImportDeclList TopLevelDeclList 
+    '''SourceFile : PACKAGE IDENTIFIER  SEMICOLON ImportDeclList TopLevelDeclList 
     '''
     parsed.append(p.slice)
     
 def p_ImportDeclList(p):
-    '''ImportDeclList : empty 
-                | ImportDeclList ImportDecl SEMICOLON
+    '''ImportDeclList : ImportDecl SEMICOLON ImportDeclList
+                | empty
     '''
     parsed.append(p.slice)
 
 def p_TopLevelDeclList(p):
-    '''TopLevelDeclList : empty 
-                | TopLevelDeclList TopLevelDecl SEMICOLON 
+    '''TopLevelDeclList : TopLevelDecl SEMICOLON TopLevelDeclList
+                | empty
     '''
     parsed.append(p.slice)
 
-def p_PackageClause(p):
-    '''PackageClause  : PACKAGE identifier  
-    '''
-    parsed.append(p.slice)
 
 def p_TopLevelDecl(p):
     '''TopLevelDecl  : Declaration 
@@ -43,39 +73,23 @@ def p_TopLevelDecl(p):
     parsed.append(p.slice)
 
 def p_ImportDecl(p):
-    '''ImportDecl : IMPORT ImportSpecTopList 
-    '''
-    parsed.append(p.slice)
-
-def p_ImportSpecTopList(p):
-    '''ImportSpecTopList : ImportSpec 
-                | LROUND ImportSpecList RROUND 
+    '''ImportDecl : IMPORT LROUND ImportSpecList RROUND
+                | IMPORT ImportSpec 
     '''
     parsed.append(p.slice)
 
 def p_ImportSpecList(p):
-    '''ImportSpecList : empty 
-                | ImportSpecList ImportSpec SEMICOLON
+    '''ImportSpecList : ImportSpec SEMICOLON ImportSpecList 
+                | empty
     '''
     parsed.append(p.slice)
 
 def p_ImportSpec(p):
-    '''ImportSpec :  ImportSpecInit ImportPath 
+    '''ImportSpec :  DOT string_lit 
+                | IDENTIFIER string_lit 
+                | empty string_lit
     '''
     parsed.append(p.slice)
-
-def p_ImportSpecInit(p):
-    '''ImportSpecInit : empty
-                 | DOT 
-                 | identifier 
-    '''
-    parsed.append(p.slice)
-
-def p_ImportPath(p):
-    '''ImportPath : string_lit
-    '''
-    parsed.append(p.slice)
-
 
 def p_Block(p):
     '''Block : LCURLY StatementList RCURLY
@@ -83,8 +97,8 @@ def p_Block(p):
     parsed.append(p.slice)
 
 def p_StatementList(p):
-    '''StatementList : empty
-                 | StatementList Statement SEMICOLON 
+    '''StatementList : Statement SEMICOLON StatementList
+                 | empty
     '''
     parsed.append(p.slice)
 
@@ -96,6 +110,9 @@ def p_Statement(p):
                  | IfStmt 
                  | SwitchStmt 
                  | ForStmt
+                 | BreakStmt
+                 | ContinueStmt
+                 | GotoStmt
     '''
     parsed.append(p.slice)
 
@@ -107,47 +124,50 @@ def p_Declaration(p):
     parsed.append(p.slice)
 
 def p_ConstDecl(p):
-    '''ConstDecl : CONST ConstSpecTopList
-    '''
-    parsed.append(p.slice)
-
-def p_ConstSpecTopList(p):
-    '''ConstSpecTopList : ConstSpec 
-                 | LROUND ConstSpecList RROUND
+    '''ConstDecl : CONST LROUND ConstSpecList RROUND
+                 | CONST ConstSpec
+                 | CONST IDENTIFIER
     '''
     parsed.append(p.slice)
 
 def p_ConstSpecList(p):
     '''ConstSpecList : empty 
                  | ConstSpecList ConstSpec SEMICOLON
+                 | ConstSpecList IDENTIFIER SEMICOLON
     '''
     parsed.append(p.slice)
 
 def p_ConstSpec(p):
-    '''ConstSpec : IdentifierList ConstSpecTail 
+    '''ConstSpec : IdentifierList 
+                 | IdentifierList Type EQ Expression 
+                 | IDENTIFIER Type EQ Expression
+                 | IdentifierList Type EQ ExpressionList  
+                 | IDENTIFIER Type EQ ExpressionList 
+                 | IdentifierList IDENTIFIER DOT IDENTIFIER EQ Expression 
+                 | IDENTIFIER IDENTIFIER DOT IDENTIFIER EQ Expression
+                 | IdentifierList IDENTIFIER DOT IDENTIFIER EQ ExpressionList  
+                 | IDENTIFIER IDENTIFIER DOT IDENTIFIER EQ ExpressionList 
+                 | IdentifierList IDENTIFIER EQ Expression 
+                 | IDENTIFIER IDENTIFIER EQ Expression
+                 | IdentifierList IDENTIFIER EQ ExpressionList  
+                 | IDENTIFIER IDENTIFIER EQ ExpressionList 
+                 | IdentifierList EQ Expression 
+                 | IDENTIFIER EQ Expression
+                 | IdentifierList EQ ExpressionList 
+                 | IDENTIFIER EQ ExpressionList
     '''
     parsed.append(p.slice)
 
-def p_ConstSpecTail(p):
-    '''ConstSpecTail : empty 
-                 | TypeTop EQ ExpressionList 
-    '''
-    parsed.append(p.slice)
 
-def p_TypeTop(p):
-    '''TypeTop : empty 
-                 | Type
-    '''
-    parsed.append(p.slice)
     
 def p_IdentifierList(p):
-    '''IdentifierList : identifier IdentifierBotList 
+    '''IdentifierList : IDENTIFIER IdentifierBotList 
     '''
     parsed.append(p.slice)
 
 def p_IdentifierBotList(p):
-    '''IdentifierBotList : empty 
-                 | IdentifierBotList COMMA identifier
+    '''IdentifierBotList : COMMA IDENTIFIER  
+                 | IdentifierBotList COMMA IDENTIFIER 
     '''
     parsed.append(p.slice)
 
@@ -157,15 +177,11 @@ def p_ExpressionList(p):
     parsed.append(p.slice)
 
 def p_ExpressionBotList(p):
-    '''ExpressionBotList : empty 
-                 | ExpressionBotList COMMA Expression
+    '''ExpressionBotList : COMMA Expression 
+                 | COMMA Expression ExpressionBotList 
     '''
     parsed.append(p.slice)
 
-def p_identifier(p):
-    '''identifier : IDENTIFIER
-    '''
-    parsed.append(p.slice)
 
 def p_TypeDecl(p):
     '''TypeDecl : TYPE TypeSpecTopList  
@@ -191,32 +207,36 @@ def p_TypeSpec(p):
     parsed.append(p.slice)
 
 def p_AliasDecl(p):
-    '''AliasDecl : identifier EQ Type
+    '''AliasDecl : IDENTIFIER EQ Type
+                 | IDENTIFIER EQ IDENTIFIER DOT IDENTIFIER
+                 | IDENTIFIER EQ IDENTIFIER
     '''
     parsed.append(p.slice)
 
 def p_TypeDef(p):
-    '''TypeDef : identifier Type
+    '''TypeDef : IDENTIFIER Type
+                 | IDENTIFIER IDENTIFIER
+                 | IDENTIFIER IDENTIFIER DOT IDENTIFIER
     '''
     parsed.append(p.slice)
 
 def p_Type(p):
-    '''Type : TypeName
-                 | TypeLit
+    '''Type :  TypeLit
+                 | LROUND IDENTIFIER RROUND
                  | LROUND Type RROUND
+                 | LROUND IDENTIFIER DOT IDENTIFIER RROUND
     '''
     parsed.append(p.slice)
 
-def p_TypeName(p):
-    '''TypeName  : identifier
-                 | QualifiedIdent
-    '''
-    parsed.append(p.slice)
+# def p_TypeName(p):
+#     '''TypeName  : IDENTIFIER DOT IDENTIFIER 
+#     '''
+#     parsed.append(p.slice)
 
-def p_QualifiedIdent(p):
-    '''QualifiedIdent : identifier DOT identifier
-    '''
-    parsed.append(p.slice)
+# def p_QualifiedIdent(p):
+#     '''QualifiedIdent : IDENTIFIER DOT IDENTIFIER 
+#     '''
+#     parsed.append(p.slice)
 
 def p_TypeLit(p):
     '''TypeLit : ArrayType
@@ -226,17 +246,14 @@ def p_TypeLit(p):
     parsed.append(p.slice)
 
 def p_ArrayType(p):
-    '''ArrayType : LSQUARE ArrayLength RSQUARE ElementType 
+    '''ArrayType : LSQUARE ArrayLength RSQUARE Type 
+                 | LSQUARE ArrayLength RSQUARE IDENTIFIER 
+                 | LSQUARE ArrayLength RSQUARE IDENTIFIER DOT IDENTIFIER 
     '''
     parsed.append(p.slice)
 
 def p_ArrayLength(p):
     '''ArrayLength : Expression 
-    '''
-    parsed.append(p.slice)
-
-def p_ElementType(p):
-    '''ElementType : Type  
     '''
     parsed.append(p.slice)
 
@@ -252,7 +269,13 @@ def p_FieldDeclList(p):
     parsed.append(p.slice)
 
 def p_FieldDecl(p):
-    '''FieldDecl : FieldDeclHead TagTop 
+    '''FieldDecl : IdentifierList Type TagTop 
+                 | IdentifierList IDENTIFIER TagTop 
+                 | IdentifierList IDENTIFIER DOT IDENTIFIER TagTop 
+                 | STAR IDENTIFIER DOT IDENTIFIER TagTop
+                 | IDENTIFIER DOT IDENTIFIER TagTop
+                 | STAR IDENTIFIER TagTop
+                 | IDENTIFIER TagTop
     '''
     parsed.append(p.slice)
 
@@ -262,22 +285,6 @@ def p_TagTop(p):
     '''
     parsed.append(p.slice)
 
-def p_FieldDeclHead(p):
-    '''FieldDeclHead : IdentifierList Type
-                 | EmbeddedField
-    '''
-    parsed.append(p.slice)
-
-def p_EmbeddedField(p):
-    '''EmbeddedField : starTop TypeName
-    '''
-    parsed.append(p.slice)
-
-def p_starTop(p):
-    '''starTop : empty
-                 | STAR
-    '''
-    parsed.append(p.slice)
 
 def p_Tag(p):
     '''Tag : string_lit
@@ -289,75 +296,76 @@ def p_FunctionType(p):
     '''
     parsed.append(p.slice)
 
+
+# Signature      = Parameters [ Result ] .
+# Result         = Parameters | Type .
+# Parameters     = "(" [ ParameterList [ "," ] ] ")" .
+# ParameterList  = ParameterDecl { "," ParameterDecl } .
+# ParameterDecl  = [ IdentifierList ] [ "..." ] Type .
+
 def p_Signature(p):
-    '''Signature : Parameters ResultTop
-    '''
-    parsed.append(p.slice)
-
-
-def p_ResultTop(p):
-    '''ResultTop : empty 
-                 | Result
+    '''Signature : Parameters 
+                 | Parameters Result
     '''
     parsed.append(p.slice)
 
 def p_Result(p):
-    '''Result : Parameters
+    '''Result : Parameters 
                  | Type
+                 | IDENTIFIER
+                 | IDENTIFIER DOT IDENTIFIER
     '''
     parsed.append(p.slice)
 
 def p_Parameters(p):
-    '''Parameters : LROUND ParameterListTop RROUND
-    '''
-    parsed.append(p.slice)
+    '''Parameters : LROUND RROUND
+                 | LROUND ParameterList RROUND
+                 | LROUND ParameterList COMMA RROUND
 
-def p_ParameterListTop(p):
-    '''ParameterListTop : empty
-                 | ParameterList commaTop
-    '''
-    parsed.append(p.slice)
-
-def p_commaTop(p):
-    '''commaTop : empty
-                 | COMMA
     '''
     parsed.append(p.slice)
 
 def p_ParameterList(p):
-    '''ParameterList  : ParameterDecl ParameterDeclList
+    '''ParameterList  : ParameterDecl 
+                 | ParameterDecl ParameterDeclBot
+                 
     '''
     parsed.append(p.slice)
 
-def p_ParameterDeclList(p):
-    '''ParameterDeclList : empty
-                 | ParameterDeclList COMMA ParameterDecl
+def p_ParameterDeclBot(p):
+    '''ParameterDeclBot  : COMMA ParameterDecl
+                 | COMMA ParameterDecl ParameterDeclBot
+                 
     '''
     parsed.append(p.slice)
-    
+
 def p_ParameterDecl(p):
-    '''ParameterDecl  : ParameterDeclHead tripledotTop Type
+    '''ParameterDecl  : DDD Type 
+                 | IdentifierList Type 
+                 | IdentifierList DDD Type
+                 | IDENTIFIER Type 
+                 | IDENTIFIER DDD Type
+                 | DDD IDENTIFIER 
+                 | IdentifierList IDENTIFIER 
+                 | IdentifierList DDD IDENTIFIER
+                 | IDENTIFIER IDENTIFIER 
+                 | IDENTIFIER DDD IDENTIFIER
+                 | DDD IDENTIFIER DOT IDENTIFIER 
+                 | IdentifierList IDENTIFIER DOT IDENTIFIER 
+                 | IdentifierList DDD IDENTIFIER DOT IDENTIFIER
+                 | IDENTIFIER IDENTIFIER DOT IDENTIFIER 
+                 | IDENTIFIER DDD IDENTIFIER DOT IDENTIFIER
     '''
     parsed.append(p.slice)
 
 
-def p_tripledotTop(p):
-    '''tripledotTop : empty
-                 | DDD
-    '''
-    parsed.append(p.slice)
 
-def p_ParameterDeclHead(p):
-    '''ParameterDeclHead : empty
-                 | IdentifierList 
-    '''
-    parsed.append(p.slice)
+
 
 def p_VarDecl(p):
     '''VarDecl : VAR VarSpecTopList
     '''
     parsed.append(p.slice)
-
 
 def p_VarSpecTopList(p):
     '''VarSpecTopList : VarSpec 
@@ -372,24 +380,25 @@ def p_VarSpecList(p):
     parsed.append(p.slice)
 
 def p_VarSpec(p):
-    '''VarSpec : IdentifierList VarSpecTail
+    '''VarSpec : IdentifierList Type VarSpecMid
+                | IDENTIFIER Type VarSpecMid
+                | IdentifierList IDENTIFIER VarSpecMid
+                | IDENTIFIER IDENTIFIER VarSpecMid
+                | IdentifierList IDENTIFIER DOT IDENTIFIER VarSpecMid
+                | IDENTIFIER IDENTIFIER DOT IDENTIFIER VarSpecMid
+                | IdentifierList EQ ExpressionList 
+                | IDENTIFIER EQ ExpressionList 
+                | IdentifierList EQ Expression
+                | IDENTIFIER EQ Expression
     '''
     parsed.append(p.slice)
-
-
-def p_VarSpecTail(p):
-    '''VarSpecTail : Type VarSpecMid
-                 | EQ ExpressionList 
-    '''
-    parsed.append(p.slice)
-
 
 def p_VarSpecMid(p):
     '''VarSpecMid : empty
                  | EQ ExpressionList
+                 | EQ Expression
     '''
     parsed.append(p.slice)
-
 
 def p_FunctionDecl(p):
     '''FunctionDecl : FUNC FunctionName FunctionDeclTail 
@@ -403,7 +412,7 @@ def p_FunctionDeclTail(p):
     parsed.append(p.slice)
 
 def p_FunctionName(p):
-    '''FunctionName : identifier
+    '''FunctionName : IDENTIFIER 
     '''
     parsed.append(p.slice)
 
@@ -418,13 +427,7 @@ def p_FunctionBody(p):
     parsed.append(p.slice)
 
 def p_MethodDecl(p):
-    '''MethodDecl : FUNC Receiver MethodName FunctionDeclTail 
-    '''
-    parsed.append(p.slice)
-
-
-def p_MethodName(p):
-    '''MethodName : identifier 
+    '''MethodDecl : FUNC Receiver IDENTIFIER FunctionDeclTail 
     '''
     parsed.append(p.slice)
 
@@ -434,24 +437,30 @@ def p_Receiver(p):
     parsed.append(p.slice)
 
 def p_SimpleStmt(p):
-    '''SimpleStmt : ExpressionStmt
+    '''SimpleStmt : Expression
                  | Assignment
                  | ShortVarDecl 
     '''
     parsed.append(p.slice)
 
-def p_ExpressionStmt(p):
-    '''ExpressionStmt : Expression 
-    '''
-    parsed.append(p.slice)
+# def p_ExpressionStmt(p):
+#     '''ExpressionStmt : Expression 
+#     '''
+#     parsed.append(p.slice)
     
 def p_ShortVarDecl(p):
     '''ShortVarDecl : IdentifierList ASSIGN_OP ExpressionList
+                 | IdentifierList ASSIGN_OP Expression
+                 | IDENTIFIER ASSIGN_OP ExpressionList
+                 | IDENTIFIER ASSIGN_OP Expression
     '''
     parsed.append(p.slice)
 
 def p_Assignment(p):
-    '''Assignment : ExpressionList assign_op ExpressionList 
+    '''Assignment : Expression assign_op Expression
+                 | ExpressionList assign_op Expression
+                 | Expression assign_op ExpressionList 
+                 | ExpressionList assign_op ExpressionList 
     '''
     parsed.append(p.slice)
 
@@ -468,13 +477,8 @@ def p_addmul_op(p):
     parsed.append(p.slice)
 
 def p_IfStmt(p):
-    '''IfStmt : IF SimpleStmtBot Expression Block elseBot 
-    '''
-    parsed.append(p.slice)
-
-def p_SimpleStmtBot(p):
-    '''SimpleStmtBot : empty
-                 | SimpleStmt SEMICOLON 
+    '''IfStmt : IF Expression Block elseBot 
+                 | IF SimpleStmt SEMICOLON  Expression Block elseBot 
     '''
     parsed.append(p.slice)
 
@@ -496,7 +500,8 @@ def p_SwitchStmt(p):
     parsed.append(p.slice)
 
 def p_ExprSwitchStmt(p):
-    '''ExprSwitchStmt : SWITCH SimpleStmtBot ExpressionBot LCURLY ExprCaseClauseList RCURLY 
+    '''ExprSwitchStmt : SWITCH SimpleStmt SEMICOLON  ExpressionBot LCURLY ExprCaseClauseList RCURLY 
+                 | SWITCH ExpressionBot LCURLY ExprCaseClauseList RCURLY 
     '''
     parsed.append(p.slice)
 
@@ -514,6 +519,7 @@ def p_ExprCaseClause(p):
 def p_ExprSwitchCase(p):
     '''ExprSwitchCase : CASE ExpressionList
                  | DEFAULT 
+                 | CASE Expression
     '''
     parsed.append(p.slice)
 
@@ -530,6 +536,7 @@ def p_ExpressionBot(p):
 
 def p_ReturnStmt(p):
     '''ReturnStmt : RETURN ExpressionListBot
+                 | RETURN Expression
     '''
     parsed.append(p.slice)
 
@@ -539,9 +546,44 @@ def p_ExpressionListBot(p):
     '''
     parsed.append(p.slice)
 
+def p_BreakStmt(p):
+    '''BreakStmt : BREAK IDENTIFIER 
+    '''
+    parsed.append(p.slice)
+
+def p_ContinueStmt(p):
+    '''ContinueStmt : CONTINUE IDENTIFIER 
+    '''
+    parsed.append(p.slice)
+
+def p_GotoStmt(p):
+    '''GotoStmt : GOTO IDENTIFIER 
+    '''
+    parsed.append(p.slice)
+
+
 def p_Expression(p):
     '''Expression : UnaryExpr
-                 | Expression binary_op Expression
+                 | Expression OR_OR Expression
+                 | Expression AMP_AMP Expression
+                 | Expression EQ_EQ Expression
+                 | Expression NOT_EQ Expression
+                 | Expression LT Expression
+                 | Expression LT_EQ Expression
+                 | Expression GT Expression
+                 | Expression GT_EQ Expression
+                 | Expression PLUS Expression
+                 | Expression MINUS Expression
+                 | Expression OR Expression
+                 | Expression CARET Expression
+                 | Expression STAR Expression
+                 | Expression DIVIDE Expression
+                 | Expression MODULO Expression
+                 | Expression LS Expression
+                 | Expression RS Expression
+                 | Expression AMP Expression
+                 | Expression AND_OR Expression
+
     '''
     parsed.append(p.slice)
 
@@ -551,24 +593,24 @@ def p_UnaryExpr(p):
     '''
     parsed.append(p.slice)
 
-def p_binary_op(p):
-    '''binary_op  : OR_OR
-                 | AMP_AMP 
-                 | rel_op 
-                 | add_op 
-                 | mul_op 
-    '''
-    parsed.append(p.slice)
+# def p_binary_op(p):
+#     '''binary_op  : OR_OR
+#                  | AMP_AMP 
+#                  | rel_op 
+#                  | add_op 
+#                  | mul_op 
+#     '''
+#     parsed.append(p.slice)
     
-def p_rel_op(p):
-    '''rel_op : EQ_EQ 
-                 | NOT_EQ 
-                 | LT 
-                 | LT_EQ 
-                 | GT 
-                 | GT_EQ 
-    '''
-    parsed.append(p.slice)
+# def p_rel_op(p):
+#     '''rel_op : EQ_EQ 
+#                  | NOT_EQ 
+#                  | LT 
+#                  | LT_EQ 
+#                  | GT 
+#                  | GT_EQ 
+#     '''
+#     parsed.append(p.slice)
 
 def p_add_op(p):
     '''add_op : PLUS 
@@ -602,6 +644,7 @@ def p_unary_op(p):
 
 def p_PrimaryExpr(p):
     '''PrimaryExpr : Operand
+                 | IDENTIFIER
                  | PrimaryExpr Selector 
                  | PrimaryExpr Index 
                  | PrimaryExpr Arguments
@@ -610,7 +653,6 @@ def p_PrimaryExpr(p):
 
 def p_Operand(p):
     '''Operand  : Literal
-                 | OperandName 
                  | MethodExpr 
                  | LROUND Expression RROUND
     '''
@@ -657,10 +699,6 @@ def p_float_lit(p):
     parsed.append(p.slice)
 ##########################################
 ###################################
-def p_OperandName(p):
-    '''OperandName : identifier 
-    '''
-    parsed.append(p.slice)
 
 def p_FunctionLit(p):
     '''FunctionLit : FUNC Function
@@ -668,19 +706,21 @@ def p_FunctionLit(p):
     parsed.append(p.slice)
 
 def p_MethodExpr(p):
-    '''MethodExpr : ReceiverType DOT MethodName
+    '''MethodExpr : ReceiverType DOT IDENTIFIER   %prec IDENTIFIER
+                 | IDENTIFIER DOT IDENTIFIER        %prec IDENTIFIER
+                 | IDENTIFIER DOT IDENTIFIER DOT IDENTIFIER
     '''
     parsed.append(p.slice)
 
 def p_ReceiverType(p):
-    '''ReceiverType  : TypeName
-                 | LROUND STAR TypeName RROUND 
+    '''ReceiverType  : LROUND STAR IDENTIFIER DOT IDENTIFIER RROUND 
+                 | LROUND STAR IDENTIFIER RROUND 
                  | LROUND ReceiverType RROUND
     '''
     parsed.append(p.slice)
 
 def p_Selector(p):
-    '''Selector : DOT identifier
+    '''Selector : DOT IDENTIFIER 
     '''
     parsed.append(p.slice)
 
@@ -690,33 +730,61 @@ def p_Index(p):
     parsed.append(p.slice)
 
 def p_Arguments(p):
-    '''Arguments : LROUND ArgumentsHead RROUND
+    '''Arguments : LROUND RROUND  
+                 | LROUND ExpressionList DDD RROUND 
+                 | LROUND Expression DDD RROUND 
+                 | LROUND ExpressionList RROUND 
+                 | LROUND Expression RROUND 
+                 | LROUND Type DDD RROUND 
+                 | LROUND Type RROUND 
+                 | LROUND Type COMMA ExpressionList  DDD RROUND 
+                 | LROUND Type COMMA ExpressionList  RROUND 
+                 | LROUND Type COMMA Expression DDD RROUND
+                 | LROUND Type COMMA Expression RROUND
+                 | LROUND IDENTIFIER DDD RROUND 
+                 | LROUND IDENTIFIER RROUND %prec LROUND
+                 | LROUND IDENTIFIER COMMA ExpressionList  DDD RROUND 
+                 | LROUND IDENTIFIER COMMA ExpressionList  RROUND 
+                 | LROUND IDENTIFIER COMMA Expression DDD RROUND
+                 | LROUND IDENTIFIER COMMA Expression RROUND
+                 | LROUND IDENTIFIER DOT IDENTIFIER DDD RROUND 
+                 | LROUND IDENTIFIER DOT IDENTIFIER RROUND 
+                 | LROUND IDENTIFIER DOT IDENTIFIER COMMA ExpressionList  DDD RROUND 
+                 | LROUND IDENTIFIER DOT IDENTIFIER COMMA ExpressionList  RROUND 
+                 | LROUND IDENTIFIER DOT IDENTIFIER COMMA Expression DDD RROUND
+                 | LROUND IDENTIFIER DOT IDENTIFIER COMMA Expression RROUND
+                 | LROUND ExpressionList DDD COMMA RROUND 
+                 | LROUND Expression DDD COMMA RROUND 
+                 | LROUND ExpressionList COMMA RROUND 
+                 | LROUND Expression COMMA RROUND 
+                 | LROUND Type DDD COMMA RROUND 
+                 | LROUND Type COMMA RROUND 
+                 | LROUND Type COMMA ExpressionList  DDD COMMA RROUND 
+                 | LROUND Type COMMA ExpressionList  COMMA RROUND 
+                 | LROUND Type COMMA Expression DDD COMMA RROUND
+                 | LROUND Type COMMA Expression COMMA RROUND
+                 | LROUND IDENTIFIER DDD COMMA RROUND 
+                 | LROUND IDENTIFIER COMMA RROUND 
+                 | LROUND IDENTIFIER COMMA ExpressionList  DDD COMMA RROUND 
+                 | LROUND IDENTIFIER COMMA ExpressionList  COMMA RROUND 
+                 | LROUND IDENTIFIER COMMA Expression DDD COMMA RROUND
+                 | LROUND IDENTIFIER COMMA Expression COMMA RROUND
+                 | LROUND IDENTIFIER DOT IDENTIFIER DDD COMMA RROUND 
+                 | LROUND IDENTIFIER DOT IDENTIFIER COMMA RROUND 
+                 | LROUND IDENTIFIER DOT IDENTIFIER COMMA ExpressionList  DDD COMMA RROUND 
+                 | LROUND IDENTIFIER DOT IDENTIFIER COMMA ExpressionList  COMMA RROUND 
+                 | LROUND IDENTIFIER DOT IDENTIFIER COMMA Expression DDD COMMA RROUND
+                 | LROUND IDENTIFIER DOT IDENTIFIER COMMA Expression COMMA RROUND
     '''
     parsed.append(p.slice)
 
-def p_ArgumentsHead(p):
-    '''ArgumentsHead : empty
-                 | ArgumentsHeadMid tripledotTop commaTop 
-    '''
-    parsed.append(p.slice)
-
-def p_ArgumentsHeadMid(p):
-    '''ArgumentsHeadMid : ExpressionList
-                 | Type COMMA ExpressionList 
-                 | Type
-    '''
-    parsed.append(p.slice)
-
-def p_newline(p):
-    '''newline : NEWLINE
-    '''
-    parsed.append(p.slice)
 
 def p_error(p):
     if p == None:
         print str(sys.argv[1])+" ::You missed something at the end"
     else:
         print str(sys.argv[1])+" :: Syntax error in line no " +  str(p.lineno)
+
 
 def p_empty(p):
     'empty :'
@@ -728,4 +796,13 @@ def p_string_lit(p):
     parsed.append(p.slice)
 
 
-# SUBROUTINES
+
+
+yacc.yacc()
+
+a=open(sys.argv[1],'r')
+a=a.read()
+data = ""
+a+="\n"
+yacc.parse(a)
+
