@@ -1,7 +1,8 @@
 all:
 	make clean
-	make lexer
 	make codegen
+	make lexer
+	make parser
 
 codegen:
 	mkdir -p bin
@@ -14,6 +15,12 @@ lexer:
 	cp src/*.py bin/
 	cp bin/lexer.py bin/lexer
 	chmod +x bin/lexer
+
+parser:
+	mkdir -p bin
+	cp src/*.py bin/
+	cp bin/parser.py bin/parser
+	chmod +x bin/parser
 
 clean:
 	rm -rf bin
