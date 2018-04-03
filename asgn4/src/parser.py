@@ -154,24 +154,39 @@ def p_ConstSpec(p):
 def p_IdentifierList(p):
     '''IdentifierList : IDENTIFIER IdentifierBotList
     '''
+    p[0] = [{'place': p[1]}] + p[2]
     parsed.append(p.slice)
 
 def p_IdentifierBotList(p):
     '''IdentifierBotList : COMMA IDENTIFIER
                  | IdentifierBotList COMMA IDENTIFIER
     '''
-    parsed.append(p.slice)
+    if len(p) == 3:
+        p[0] = [{'place': p[2]}]
+        return
+    elif len(p) == 4:
+        p[0] = p[1] + [{'place': p[3]}]
+        return
+    # parsed.append(p.slice)
 
 def p_ExpressionList(p):
     '''ExpressionList : Expression ExpressionBotList
     '''
-    parsed.append(p.slice)
+    p[0] = [p[1]] + p[2]
+    return
+    # parsed.append(p.slice)
 
 def p_ExpressionBotList(p):
     '''ExpressionBotList : COMMA Expression
-                 | COMMA Expression ExpressionBotList
+                        | ExpressionBotList COMMA Expression
     '''
-    parsed.append(p.slice)
+    if len(p) == 3:
+        p[0] = [p[2]]
+        return
+    elif len(p) == 4:
+        p[0] = p[1]+ [p[3]]
+        return
+    # parsed.append(p.slice)
 
 def p_TypeDecl(p):
     '''TypeDecl : TYPE TypeSpecTopList
@@ -286,7 +301,6 @@ def p_FunctionType(p):
     '''FunctionType : FUNC Signature
     '''
     parsed.append(p.slice)
-
 
 # Signature      = Parameters [ Result ] .
 # Result         = Parameters | Type .
@@ -422,8 +436,9 @@ def p_SimpleStmt(p):
                  | ShortVarDecl
                  | IncDecStmt
     '''
-    parsed.append(p.slice)
     p[0] = p[1]
+    return
+    # parsed.append(p.slice)
 
 # def p_ExpressionStmt(p):
 #     '''ExpressionStmt : Expression
@@ -437,33 +452,36 @@ def p_IncDecStmt(p):
     # TODO: Handle when Expression is not variable
     if p[2] == '++':
         print '+', p[1]['place'], p[1]['place'], 1
-        return
     else:
         print '-', p[1]['place'], p[1]['place'], 1
-        return
+    return
     # parsed.append(p.slice)
-
 
 def p_ShortVarDecl(p):
     '''ShortVarDecl : IdentifierList ASSIGN_OP ExpressionList
-                 | IdentifierList ASSIGN_OP Expression
-                 | IDENTIFIER ASSIGN_OP ExpressionList
                  | IDENTIFIER ASSIGN_OP Expression
     '''
-    # TODO: Handle lists
+    # TODO: Add in symbol table
     if p.slice[1].type == 'IDENTIFIER':
         print p[2], p[1], p[3]['place']
-    parsed.append(p.slice)
+    elif len(p[1]) == len(p[3]):
+        for i in range(len(p[1])):
+            print p[2], p[1][i]['place'], p[3][i]['place']
+    else:
+        # Error
+        print "Assignment mismatch:", len(p[1]), "identifier(s) but", len(p[3]),"value(s)"
+    return
+    # parsed.append(p.slice)
 
 def p_Assignment(p):
     '''Assignment : Expression assign_op Expression
-                 | ExpressionList assign_op Expression
-                 | Expression assign_op ExpressionList
                  | ExpressionList assign_op ExpressionList
     '''
+    print p.slice
     # TODO: Handle lists
     print p[2], p[1]['place'], p[3]['place']
-    parsed.append(p.slice)
+    return
+    # parsed.append(p.slice)
 
 def p_assign_op(p):
     '''assign_op : EQ
@@ -541,14 +559,9 @@ def p_ExpressionBot(p):
     parsed.append(p.slice)
 
 def p_ReturnStmt(p):
-    '''ReturnStmt : RETURN ExpressionListBot
+    '''ReturnStmt : RETURN
                  | RETURN Expression
-    '''
-    parsed.append(p.slice)
-
-def p_ExpressionListBot(p):
-    '''ExpressionListBot : empty
-                 | ExpressionList
+                 | RETURN ExpressionList
     '''
     parsed.append(p.slice)
 
@@ -805,7 +818,6 @@ def p_Arguments(p):
                  | LROUND IDENTIFIER DOT IDENTIFIER COMMA Expression COMMA RROUND
     '''
     parsed.append(p.slice)
-
 
 def p_error(p):
     if p == None:

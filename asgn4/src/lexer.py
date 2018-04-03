@@ -3,24 +3,9 @@
 import ply.lex as lex
 import sys
 
-cmd_len = len(sys.argv)
 print_op = 0
 
-if cmd_len != 2 and cmd_len != 3:
-    print('Usage: python /path/to/lexer.py /path/to/code.go print_op')
-    print('print_op is optional, with default value 0')
-    print('If print_op is 0, print Nothing')
-    print('If print_op is 1, print lexemes')
-    print('If print_op is 2, print token stream')
-    print('If print_op is 3, print lexemes and token stream')
-    sys.exit(1)
-
 input_file = sys.argv[1]
-if cmd_len == 2:
-    print('Using default value of print_op i.e. 0')
-
-if cmd_len == 3:
-    print_op = int(sys.argv[2])
 
 import os
 if os.path.isfile(input_file) is False:
