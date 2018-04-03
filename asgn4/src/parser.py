@@ -57,11 +57,9 @@ def p_TopLevelDeclList(p):
     '''
     parsed.append(p.slice)
 
-
 def p_TopLevelDecl(p):
     '''TopLevelDecl  : Declaration
                 | FunctionDecl
-                | MethodDecl
     '''
     parsed.append(p.slice)
 
@@ -167,14 +165,12 @@ def p_IdentifierBotList(p):
     elif len(p) == 4:
         p[0] = p[1] + [{'place': p[3]}]
         return
-    # parsed.append(p.slice)
 
 def p_ExpressionList(p):
     '''ExpressionList : Expression ExpressionBotList
     '''
     p[0] = [p[1]] + p[2]
     return
-    # parsed.append(p.slice)
 
 def p_ExpressionBotList(p):
     '''ExpressionBotList : COMMA Expression
@@ -186,7 +182,6 @@ def p_ExpressionBotList(p):
     elif len(p) == 4:
         p[0] = p[1]+ [p[3]]
         return
-    # parsed.append(p.slice)
 
 def p_TypeDecl(p):
     '''TypeDecl : TYPE TypeSpecTopList
@@ -420,16 +415,6 @@ def p_FunctionBody(p):
     '''
     parsed.append(p.slice)
 
-def p_Receiver(p):
-    '''Receiver : Parameters
-    '''
-    parsed.append(p.slice)
-
-def p_MethodDecl(p):
-    '''MethodDecl : FUNC Receiver IDENTIFIER FunctionDeclTail
-    '''
-    parsed.append(p.slice)
-
 def p_SimpleStmt(p):
     '''SimpleStmt : Expression
                  | Assignment
@@ -468,20 +453,17 @@ def p_ShortVarDecl(p):
         for i in range(len(p[1])):
             print p[2], p[1][i]['place'], p[3][i]['place']
     else:
-        # Error
         print "Assignment mismatch:", len(p[1]), "identifier(s) but", len(p[3]),"value(s)"
     return
-    # parsed.append(p.slice)
 
 def p_Assignment(p):
     '''Assignment : Expression assign_op Expression
                  | ExpressionList assign_op ExpressionList
     '''
-    print p.slice
+    # print p.slice
     # TODO: Handle lists
     print p[2], p[1]['place'], p[3]['place']
     return
-    # parsed.append(p.slice)
 
 def p_assign_op(p):
     '''assign_op : EQ
@@ -498,7 +480,7 @@ def p_assign_op(p):
                  | AND_OR_EQ
     '''
     p[0] = p[1]
-    parsed.append(p.slice)
+    return
 
 def p_IfStmt(p):
     '''IfStmt : IF Expression Block elseBot
@@ -604,17 +586,14 @@ def p_Expression(p):
     '''
     if len(p) == 2:
         p[0] = p[1]
-        return
-
-    if len(p) == 4:
+    elif len(p) == 4:
         i = randint(0, sys.maxint)
         temp_var = 'temp_' + str(i)
         p[0] = {
             'place': temp_var
         }
         print p[2], p[0]['place'], p[1]['place'], p[3]['place']
-        return
-    # parsed.append(p.slice)
+    return
 
 def p_UnaryExpr(p):
     '''UnaryExpr : PrimaryExpr
@@ -622,17 +601,14 @@ def p_UnaryExpr(p):
     '''
     if len(p) == 2:
         p[0] = p[1]
-        return
-
-    if len(p) == 3:
+    elif len(p) == 3:
         i = randint(0, sys.maxint)
         temp_var = 'temp_' + str(i)
         p[0] = {
             'place': temp_var
         }
         print p[1], p[0]['place'], p[2]['place']
-        return
-    # parsed.append(p.slice)
+    return
 
 def p_unary_op(p):
     '''unary_op : PLUS
@@ -644,7 +620,7 @@ def p_unary_op(p):
                  | LT_MINUS
     '''
     p[0] = p[1]
-    # parsed.append(p.slice)
+    return
 
 def p_PrimaryExpr(p):
     '''PrimaryExpr : Operand
@@ -659,24 +635,23 @@ def p_PrimaryExpr(p):
     if len(p) == 2:
         if p.slice[1].type == 'IDENTIFIER':
             p[0]['place'] = p[1]
-            return
         else:
             p[0]['place'] = p[1]['place']
-            return
-
-    if len(p) == 3:
+    elif len(p) == 3:
+        p[0]
         # TODO
-        return
-    # parsed.append(p.slice)
+    return
 
 def p_Operand(p):
     '''Operand  : Literal
-                 | MethodExpr
                  | LROUND Expression RROUND
     '''
-    p[0] = p[1]
-    # TODO: MethodExpr, LROUND Expression RROUND
-    # parsed.append(p.slice)
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        # TODO: ROUND Expression RROUND
+        p[0] = p[2]
+    return
 
 def p_Literal(p):
     '''Literal  : BasicLit
@@ -684,7 +659,7 @@ def p_Literal(p):
     '''
     p[0] = p[1]
     # TODO: FunctionLit
-    # parsed.append(p.slice)
+    return
 
 def p_BasicLit(p):
     '''BasicLit : int_lit
@@ -692,7 +667,7 @@ def p_BasicLit(p):
                  | string_lit
     '''
     p[0] = p[1]
-    parsed.append(p.slice)
+    return
 
 def p_int_lit(p):
     '''int_lit : decimal_lit
@@ -700,7 +675,7 @@ def p_int_lit(p):
                  | hex_lit
     '''
     p[0] = p[1]
-    parsed.append(p.slice)
+    return
 
 def p_decimal_lit(p):
     '''decimal_lit : DECIMAL_LIT
@@ -709,7 +684,7 @@ def p_decimal_lit(p):
         'type' : 'INT',
         'place' : p[1]
     }
-    parsed.append(p.slice)
+    return
 
 def p_octal_lit(p):
     '''octal_lit  : OCTAL_LIT
@@ -718,7 +693,7 @@ def p_octal_lit(p):
         'type' : 'OCT',
         'place' : p[1]
     }
-    parsed.append(p.slice)
+    return
 
 def p_hex_lit(p):
     '''hex_lit  : HEX_LIT
@@ -727,7 +702,7 @@ def p_hex_lit(p):
         'type' : 'HEX',
         'place' : p[1]
     }
-    parsed.append(p.slice)
+    return
 
 def p_float_lit(p):
     '''float_lit : FLOAT_LIT
@@ -736,27 +711,10 @@ def p_float_lit(p):
         'type' : 'FLOAT',
         'place' : p[1]
     }
-    parsed.append(p.slice)
-
-##########################################
-###################################
+    return
 
 def p_FunctionLit(p):
     '''FunctionLit : FUNC Function
-    '''
-    parsed.append(p.slice)
-
-def p_MethodExpr(p):
-    '''MethodExpr : ReceiverType DOT IDENTIFIER   %prec IDENTIFIER
-                 | IDENTIFIER DOT IDENTIFIER        %prec IDENTIFIER
-                 | IDENTIFIER DOT IDENTIFIER DOT IDENTIFIER
-    '''
-    parsed.append(p.slice)
-
-def p_ReceiverType(p):
-    '''ReceiverType  : LROUND STAR IDENTIFIER DOT IDENTIFIER RROUND
-                 | LROUND STAR IDENTIFIER RROUND
-                 | LROUND ReceiverType RROUND
     '''
     parsed.append(p.slice)
 
@@ -825,7 +783,6 @@ def p_error(p):
     else:
         print str(sys.argv[1])+" :: Syntax error in line no " +  str(p.lineno)
 
-
 def p_empty(p):
     'empty :'
     pass
@@ -835,7 +792,6 @@ def p_string_lit(p):
     '''
     p[0] = p[1]
     return
-    # parsed.append(p.slice)
 
 yacc.yacc()
 
