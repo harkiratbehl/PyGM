@@ -33,21 +33,17 @@ class ThreeAddressCode(Code):
         if leader not in self.leaders:
             self.leaders.append(leader)
 
+class TreeNode:
+    """Defines a class for p which stores the element for the Node"""
 
+    def __init__(self, name, data, input_type, isLvalue, children):
+        """Initializes class TreeNode"""
+        self.name = name
+        self.data = data
+        self.input_type = input_type
+        self.isLvalue = isLvalue
+        self.children = children
 
+    def print_node(self):
+        print "Name:", self.name, "Data:", self.data, "Type:", self.input_type, "Is L-Value:", self.isLvalue, "Children:", self.children
 
-
-class Tree:
-    """Defines a class for p which stores any piece of code line by line"""
-
-    def __init__(self, name,data,input_type,islvalue,children):
-        """Initializes empty list named code"""
-        self.name =name
-        self.data=data
-        self.input_type=input_type
-        self.islvalue=islvalue
-        self.children=children
-
-    # def fill(self, name,data,input_type,islvalue,children):
-    #    """Inserts a leader if not already present in the list"""
-        

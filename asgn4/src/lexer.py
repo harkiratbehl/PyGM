@@ -305,6 +305,6 @@ def print_lexemes(token_type_list, lexemes):
 
 if print_op & 1:
     print_lexemes(token_type_list, lexeme_list)
-# if print_op & 2:
-print_tokens(token_stream)
+if print_op & 2:
+    print_tokens(token_stream)
 

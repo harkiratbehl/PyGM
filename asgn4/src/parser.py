@@ -3,13 +3,19 @@ import ply.lex as lex
 import ply.yacc as yacc
 from lexer import tokens
 
-from code import Tree
+from code import TreeNode
 from code import ThreeAddressCode
 import sys
 from random import *
 import logging
 
 parsed=[]
+
+ThreeAddrCode = ThreeAddressCode()
+
+def temp_gen():
+    i = randint(0, sys.maxint)
+    return 'temp_' + str(i)
 
 precedence = (
     ('left','IDENTIFIER'),
@@ -155,24 +161,25 @@ def p_ConstSpec(p):
 def p_IdentifierList(p):
     '''IdentifierList : IDENTIFIER IdentifierBotList
     '''
-    p[0] = [{'place': p[1]}] + p[2]
+    # p[0] = [{'place': p[1]}] + p[2]
     parsed.append(p.slice)
 
 def p_IdentifierBotList(p):
     '''IdentifierBotList : COMMA IDENTIFIER
                  | IdentifierBotList COMMA IDENTIFIER
     '''
-    if len(p) == 3:
-        p[0] = [{'place': p[2]}]
-        return
-    elif len(p) == 4:
-        p[0] = p[1] + [{'place': p[3]}]
-        return
+    return
+    # if len(p) == 3:
+        # p[0] = [{'place': p[2]}]
+        # return
+    # elif len(p) == 4:
+        # p[0] = p[1] + [{'place': p[3]}]
+        # return
 
 def p_ExpressionList(p):
     '''ExpressionList : Expression COMMA ExpressionBotList
     '''
-    p[0] = [p[1]] + p[3]
+    p[0] = TreeNode('ExpressionList', 0, 'INT', 0, p[1].children + p[3].children)
     return
 
 def p_ExpressionBotList(p):
@@ -180,10 +187,10 @@ def p_ExpressionBotList(p):
                         | Expression
     '''
     if len(p) == 2:
-        p[0] = [p[1]]
+        p[0] = TreeNode('ExpressionBotList', 0, 'INT', 0, p[1].children)
         return
     elif len(p) == 4:
-        p[0] = [p[1]]+ p[3]
+        p[0] = TreeNode('ExpressionBotList', 0, 'INT', 0, p[1].children + p[3].children)
         return
 
 def p_TypeDecl(p):
@@ -424,6 +431,7 @@ def p_SimpleStmt(p):
                  | IncDecStmt
     '''
     p[0] = p[1]
+    p[0].name = 'SimpleStmt'
     return
     # parsed.append(p.slice)
 
@@ -436,11 +444,16 @@ def p_IncDecStmt(p):
     '''IncDecStmt : Expression PLUS_PLUS
                 | Expression MINUS_MINUS
     '''
-    # TODO: Handle when Expression is not variable
-    if p[2] == '++':
-        print '+', p[1]['place'], p[1]['place'], 1
+    one_val = TreeNode('decimal_lit', 1, 'INT', 0, [])
+    if p[1].isLvalue == 1:
+        if p[2] == '++':
+            ThreeAddrCode.add_line([ThreeAddrCode.length() + 1, '+', p[1].data, p[1].data, one_val.data])
+        else:
+            ThreeAddrCode.add_line([ThreeAddrCode.length() + 1, '-', p[1].data, p[1].data, one_val.data])
     else:
-        print '-', p[1]['place'], p[1]['place'], 1
+        print "*** Error: Lvalue required! ***"
+    p[0] = p[1]
+    p[0].name = 'IncDecStmt'
     return
     # parsed.append(p.slice)
 
@@ -449,23 +462,34 @@ def p_ShortVarDecl(p):
                  | Expression ASSIGN_OP Expression
     '''
     # TODO: Add in symbol table
-    if p.slice[1].type == 'IDENTIFIER':
-        print p[2], p[1], p[3]['place']
-    elif len(p[1]) == len(p[3]):
-        for i in range(len(p[1])):
-            print p[2], p[1][i]['place'], p[3][i]['place']
-    else:
-        print "Assignment mismatch:", len(p[1]), "identifier(s) but", len(p[3]),"value(s)"
+    p[0] = TreeNode('ShortVarDecl', 0, 'INT', 0, [])
+    if p[1].name == 'ExpressionList':
+        l1 = len(p[1].children)
+        l2 = len(p[3].children)
+        if l1 == l2:
+            for i in range(l1):
+                ThreeAddrCode.add_line([ThreeAddrCode.length() + 1, p[2], p[1].children[i].data, p[3].children[i].data, ''])
+        else:
+            print "*** Error: Assignment mismatch:", l1, "identifier(s) but", l2, "value(s)! ***"
+    elif p[1].name == 'Expression':
+        ThreeAddrCode.add_line([ThreeAddrCode.length() + 1, p[2], p[1].data, p[3].data, ''])
     return
 
 def p_Assignment(p):
     '''Assignment : ExpressionList assign_op ExpressionList
                 | Expression assign_op Expression
     '''
-    print type(p.slice[1])
-    print p.slice[1]
-    # TODO: Handle lists
-    # print p[2], p[1]['place'], p[3]['place']
+    p[0] = TreeNode('Assignment', 0, 'INT', 0, [])
+    if p[1].name == 'ExpressionList':
+        l1 = len(p[1].children)
+        l2 = len(p[3].children)
+        if l1 == l2:
+            for i in range(l1):
+                ThreeAddrCode.add_line([ThreeAddrCode.length() + 1, p[2].data, p[1].children[i].data, p[3].children[i].data, ''])
+        else:
+            print "*** Error: Assignment mismatch:", l1, "identifier(s) but", l2, "value(s)! ***"
+    elif p[1].name == 'Expression':
+        ThreeAddrCode.add_line([ThreeAddrCode.length() + 1, p[2].data, p[1].data, p[3].data, ''])
     return
 
 def p_assign_op(p):
@@ -482,7 +506,7 @@ def p_assign_op(p):
                  | AMP_EQ
                  | AND_OR_EQ
     '''
-    p[0] = p[1]
+    p[0] = TreeNode('assign_op', p[1], 'OPERATOR', 0, [])
     return
 
 def p_IfStmt(p):
@@ -590,12 +614,10 @@ def p_Expression(p):
     if len(p) == 2:
         p[0] = p[1]
     elif len(p) == 4:
-        i = randint(0, sys.maxint)
-        temp_var = 'temp_' + str(i)
-        p[0] = {
-            'place': temp_var
-        }
-        print p[2], p[0]['place'], p[1]['place'], p[3]['place']
+        p[0] = TreeNode('IDENTIFIER', temp_gen(), 'INT', 1, [])
+        ThreeAddrCode.add_line([ThreeAddrCode.length() + 1, p[2], p[0].data, p[1].data, p[3].data])
+    p[0].name = 'Expression'
+    p[0].children = [p[0]]
     return
 
 def p_UnaryExpr(p):
@@ -605,12 +627,9 @@ def p_UnaryExpr(p):
     if len(p) == 2:
         p[0] = p[1]
     elif len(p) == 3:
-        i = randint(0, sys.maxint)
-        temp_var = 'temp_' + str(i)
-        p[0] = {
-            'place': temp_var
-        }
-        print p[1], p[0]['place'], p[2]['place']
+        p[0] = TreeNode('IDENTIFIER', temp_gen(), 'INT', 1, [])
+        ThreeAddrCode.add_line([ThreeAddrCode.length() + 1, p[1].data, p[0].data, p[2].data])
+    p[0].name = 'UnaryExpr'
     return
 
 def p_unary_op(p):
@@ -622,7 +641,7 @@ def p_unary_op(p):
                  | AMP
                  | LT_MINUS
     '''
-    p[0] = p[1]
+    p[0] = TreeNode('unary_op', p[1], 'OPERATOR', 0, [])
     return
 
 def p_PrimaryExpr(p):
@@ -632,17 +651,16 @@ def p_PrimaryExpr(p):
                  | PrimaryExpr Index
                  | PrimaryExpr Arguments
     '''
-    p[0] = {
-        'place': 'undefined'
-    }
+    # print p.slice
     if len(p) == 2:
         if p.slice[1].type == 'IDENTIFIER':
-            p[0]['place'] = p[1]
-        else:
-            p[0]['place'] = p[1]['place']
+            p[0] = TreeNode('IDENTIFIER', p[1], 'INT', 1, [])
+        elif p[1].name == 'Operand':
+            p[0] = p[1]
     elif len(p) == 3:
         p[0]
         # TODO
+    p[0].name = 'PrimaryExpr'
     return
 
 def p_Operand(p):
@@ -652,16 +670,20 @@ def p_Operand(p):
     if len(p) == 2:
         p[0] = p[1]
     else:
-        # TODO: ROUND Expression RROUND
         p[0] = p[2]
+    p[0].name = 'Operand'
     return
 
 def p_Literal(p):
     '''Literal  : BasicLit
                  | FunctionLit
     '''
-    p[0] = p[1]
-    # TODO: FunctionLit
+    if p[1].name == 'BasicLit':
+        p[0] = p[1]
+    elif p[1].name == 'FunctionLit':
+        p[0]
+        # TODO: FunctionLit
+    p[0].name = 'Literal'
     return
 
 def p_BasicLit(p):
@@ -670,6 +692,7 @@ def p_BasicLit(p):
                  | string_lit
     '''
     p[0] = p[1]
+    p[0].name = 'BasicLit'
     return
 
 def p_int_lit(p):
@@ -678,30 +701,31 @@ def p_int_lit(p):
                  | hex_lit
     '''
     p[0] = p[1]
+    p[0].name = 'int_lit'
     return
 
 def p_decimal_lit(p):
     '''decimal_lit : DECIMAL_LIT
     '''
-    p[0] = Tree(p.slice[1],p[1],'INT','FALSE',[])
+    p[0] = TreeNode('decimal_lit', p[1], 'INT', 0, [])
     return
 
 def p_octal_lit(p):
-    '''octal_lit  : OCTAL_LIT
+    '''octal_lit : OCTAL_LIT
     '''
-    p[0] = Tree(p.slice[1],p[1],'OCT','FALSE',[])
+    p[0] = TreeNode('octal_lit', p[1], 'OCT', 0, [])
     return
 
 def p_hex_lit(p):
     '''hex_lit  : HEX_LIT
     '''
-    p[0] = Tree(p.slice[1],p[1],'HEX','FALSE',[])
+    p[0] = TreeNode('hex_lit', p[1], 'HEX', 0, [])
     return
 
 def p_float_lit(p):
     '''float_lit : FLOAT_LIT
     '''
-    p[0] = Tree(p.slice[1],p[1],'FLOAT','FALSE',[])
+    p[0] = TreeNode('float_lit', p[1], 'FLOAT', 0, [])
     return
 
 def p_FunctionLit(p):
@@ -773,7 +797,6 @@ def p_error(p):
         print str(sys.argv[1]) + " :: You missed something at the end"
     else:
         print str(sys.argv[1]) + " :: Syntax error in line no " +  str(p.lineno)
-        print p
 
 def p_empty(p):
     'empty :'
@@ -782,7 +805,7 @@ def p_empty(p):
 def p_string_lit(p):
     '''string_lit : STRING_LIT
     '''
-    p[0] = Tree(p.slice[1],p[1],'STRING','FALSE',[])
+    p[0] = TreeNode('string_lit', p[1], 'STRING', 0, [])
     return
 
 logging.basicConfig(
@@ -794,7 +817,7 @@ logging.basicConfig(
 
 log = logging.getLogger()
 
-yacc.yacc(debug=True,debuglog=log)
+yacc.yacc(debug=True, debuglog=log)
 filename = sys.argv[1]
 
 inp = open(filename, 'r')
@@ -802,4 +825,6 @@ inp = inp.read()
 inp += "\n"
 
 yacc.parse(inp, debug=log)
+
+ThreeAddrCode.print_code()
 
