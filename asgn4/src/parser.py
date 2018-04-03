@@ -5,6 +5,7 @@ from lexer import tokens
 
 import sys
 from random import *
+import logging
 
 parsed=[]
 
@@ -442,8 +443,8 @@ def p_IncDecStmt(p):
     # parsed.append(p.slice)
 
 def p_ShortVarDecl(p):
-    '''ShortVarDecl : IdentifierList ASSIGN_OP ExpressionList
-                 | IDENTIFIER ASSIGN_OP Expression
+    '''ShortVarDecl : ExpressionList ASSIGN_OP ExpressionList
+                 | Expression ASSIGN_OP Expression
     '''
     # TODO: Add in symbol table
     if p.slice[1].type == 'IDENTIFIER':
@@ -459,9 +460,10 @@ def p_Assignment(p):
     '''Assignment : ExpressionList assign_op ExpressionList
                 | Expression assign_op Expression
     '''
-    print p.slice
+    print type(p.slice[1])
+    print p.slice[1]
     # TODO: Handle lists
-    print p[2], p[1]['place'], p[3]['place']
+    # print p[2], p[1]['place'], p[3]['place']
     return
 
 def p_assign_op(p):
@@ -793,13 +795,21 @@ def p_string_lit(p):
     p[0] = p[1]
     return
 
-yacc.yacc()
+logging.basicConfig(
+    level = logging.DEBUG,
+    filename = "parselog.txt",
+    filemode = "w",
+    format = "%(filename)10s:%(lineno)4d:%(message)s"
+)
 
+log = logging.getLogger()
+
+yacc.yacc(debug=True,debuglog=log)
 filename = sys.argv[1]
 
 inp = open(filename, 'r')
 inp = inp.read()
 inp += "\n"
 
-yacc.parse(inp)
+yacc.parse(inp, debug=log)
 
