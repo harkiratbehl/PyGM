@@ -167,20 +167,20 @@ def p_IdentifierBotList(p):
         return
 
 def p_ExpressionList(p):
-    '''ExpressionList : Expression ExpressionBotList
+    '''ExpressionList : Expression COMMA ExpressionBotList
     '''
-    p[0] = [p[1]] + p[2]
+    p[0] = [p[1]] + p[3]
     return
 
 def p_ExpressionBotList(p):
-    '''ExpressionBotList : COMMA Expression
-                        | ExpressionBotList COMMA Expression
+    '''ExpressionBotList : Expression COMMA ExpressionBotList
+                        | Expression
     '''
-    if len(p) == 3:
-        p[0] = [p[2]]
+    if len(p) == 2:
+        p[0] = [p[1]]
         return
     elif len(p) == 4:
-        p[0] = p[1]+ [p[3]]
+        p[0] = [p[1]]+ p[3]
         return
 
 def p_TypeDecl(p):
@@ -285,7 +285,6 @@ def p_TagTop(p):
                  | Tag
     '''
     parsed.append(p.slice)
-
 
 def p_Tag(p):
     '''Tag : string_lit
