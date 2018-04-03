@@ -3,6 +3,8 @@ import ply.lex as lex
 import ply.yacc as yacc
 from lexer import tokens
 
+from code import Tree
+from code import ThreeAddressCode
 import sys
 from random import *
 import logging
@@ -681,37 +683,25 @@ def p_int_lit(p):
 def p_decimal_lit(p):
     '''decimal_lit : DECIMAL_LIT
     '''
-    p[0] = {
-        'type' : 'INT',
-        'place' : p[1]
-    }
+    p[0] = Tree(p.slice[1],p[1],'INT','FALSE',[])
     return
 
 def p_octal_lit(p):
     '''octal_lit  : OCTAL_LIT
     '''
-    p[0] = {
-        'type' : 'OCT',
-        'place' : p[1]
-    }
+    p[0] = Tree(p.slice[1],p[1],'OCT','FALSE',[])
     return
 
 def p_hex_lit(p):
     '''hex_lit  : HEX_LIT
     '''
-    p[0] = {
-        'type' : 'HEX',
-        'place' : p[1]
-    }
+    p[0] = Tree(p.slice[1],p[1],'HEX','FALSE',[])
     return
 
 def p_float_lit(p):
     '''float_lit : FLOAT_LIT
     '''
-    p[0] = {
-        'type' : 'FLOAT',
-        'place' : p[1]
-    }
+    p[0] = Tree(p.slice[1],p[1],'FLOAT','FALSE',[])
     return
 
 def p_FunctionLit(p):
@@ -792,7 +782,7 @@ def p_empty(p):
 def p_string_lit(p):
     '''string_lit : STRING_LIT
     '''
-    p[0] = p[1]
+    p[0] = Tree(p.slice[1],p[1],'STRING','FALSE',[])
     return
 
 logging.basicConfig(
