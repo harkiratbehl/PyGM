@@ -457,10 +457,10 @@ def p_ShortVarDecl(p):
     return
 
 def p_Assignment(p):
-    '''Assignment : Expression assign_op Expression
-                 | ExpressionList assign_op ExpressionList
+    '''Assignment : ExpressionList assign_op ExpressionList
+                | Expression assign_op Expression
     '''
-    # print p.slice
+    print p.slice
     # TODO: Handle lists
     print p[2], p[1]['place'], p[3]['place']
     return
@@ -779,9 +779,10 @@ def p_Arguments(p):
 
 def p_error(p):
     if p == None:
-        print str(sys.argv[1])+" :: You missed something at the end"
+        print str(sys.argv[1]) + " :: You missed something at the end"
     else:
-        print str(sys.argv[1])+" :: Syntax error in line no " +  str(p.lineno)
+        print str(sys.argv[1]) + " :: Syntax error in line no " +  str(p.lineno)
+        print p
 
 def p_empty(p):
     'empty :'
