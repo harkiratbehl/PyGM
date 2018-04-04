@@ -1,14 +1,13 @@
 package main
 
 func main() {
-	i := 0
-	a := [3]int{1, 2, 3}
-	if i <= 3 {
-		a[i]++
-	}
-	if i >= 2 {
-		a[i]--
-	} else {
-		a[i] = 1
-	}
+    i := 0
+    if i <= 3 {
+        a = 1
+    }
+    if i >= 2 {
+        a = 2
+    } else {
+        a = 3
+    }
 }

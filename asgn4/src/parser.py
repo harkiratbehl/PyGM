@@ -52,54 +52,76 @@ precedence = (
 def p_SourceFile(p):
     '''SourceFile : PACKAGE IDENTIFIER  SEMICOLON ImportDeclList TopLevelDeclList
     '''
-    parsed.append(p.slice)
+    # TODO: Ignoring package name and Imports for now
+    p[0] = p[5]
+    return
+    # parsed.append(p.slice)
 
 def p_ImportDeclList(p):
     '''ImportDeclList : ImportDecl SEMICOLON ImportDeclList
                 | empty
     '''
-    parsed.append(p.slice)
+    # TODO: Ignoring Imports for now
+    return
+    # parsed.append(p.slice)
 
 def p_TopLevelDeclList(p):
     '''TopLevelDeclList : TopLevelDecl SEMICOLON TopLevelDeclList
-                | empty
+                        | empty
     '''
     parsed.append(p.slice)
 
 def p_TopLevelDecl(p):
     '''TopLevelDecl  : Declaration
-                | FunctionDecl
+                    | FunctionDecl
     '''
     parsed.append(p.slice)
 
 def p_ImportDecl(p):
     '''ImportDecl : IMPORT LROUND ImportSpecList RROUND
-                | IMPORT ImportSpec
+                    | IMPORT ImportSpec
     '''
-    parsed.append(p.slice)
+    # TODO: Ignoring Imports for now
+    return
+    # parsed.append(p.slice)
 
 def p_ImportSpecList(p):
     '''ImportSpecList : ImportSpec SEMICOLON ImportSpecList
-                | empty
+                        | empty
     '''
-    parsed.append(p.slice)
+    # TODO: Ignoring Imports for now
+    return
+    # parsed.append(p.slice)
 
 def p_ImportSpec(p):
     '''ImportSpec :  DOT string_lit
-                | IDENTIFIER string_lit
-                | empty string_lit
+                    | IDENTIFIER string_lit
+                    | empty string_lit
     '''
-    parsed.append(p.slice)
+    # TODO: Ignoring Imports for now
+    return
+    # parsed.append(p.slice)
 
 def p_Block(p):
     '''Block : LCURLY StatementList RCURLY
     '''
-    parsed.append(p.slice)
+    p[0] = p[2]
+    p[0].name = 'Block'
+    p[0].print_node()
+    return
+    # parsed.append(p.slice)
 
 def p_StatementList(p):
     '''StatementList : Statement SEMICOLON StatementList
-                 | empty
+                    | empty
     '''
+    # print p.slice, "aa"
+    if len(p) == 4:
+        # print p[1].TAC, "bb"
+        # print p[3].TAC, "cc"
+        p[0] = TreeNode('StatementList', 0, 'INT', 0, p[1].children + p[3].children, p[1].TAC.append_TAC(p[3].TAC))
+    else:
+        p[0] = TreeNode('StatementList', 0, 'INT', 0, [])
     parsed.append(p.slice)
 
 def p_Statement(p):
@@ -114,7 +136,13 @@ def p_Statement(p):
                  | ContinueStmt
                  | GotoStmt
     '''
-    parsed.append(p.slice)
+    # print p.slice
+    # print p[1].TAC
+    # if p[1].name == 'SimpleStmt':
+    p[0] = p[1]
+    p[0].name = 'Statement'
+    p[0].children = [p[0]]
+    # parsed.append(p.slice)
 
 def p_Declaration(p):
     '''Declaration  : ConstDecl
@@ -162,7 +190,9 @@ def p_IdentifierList(p):
     '''IdentifierList : IDENTIFIER IdentifierBotList
     '''
     # p[0] = [{'place': p[1]}] + p[2]
-    parsed.append(p.slice)
+    # p[0] = TreeNode('IdentifierList', 0, 'INT', 0, p[1].children + p[3].children)
+    # parsed.append(p.slice)
+    return
 
 def p_IdentifierBotList(p):
     '''IdentifierBotList : COMMA IDENTIFIER
@@ -179,7 +209,7 @@ def p_IdentifierBotList(p):
 def p_ExpressionList(p):
     '''ExpressionList : Expression COMMA ExpressionBotList
     '''
-    p[0] = TreeNode('ExpressionList', 0, 'INT', 0, p[1].children + p[3].children)
+    p[0] = TreeNode('ExpressionList', 0, 'INT', 0, [p[1]] + p[3].children, p[1].TAC.append_TAC(p[3].TAC))
     return
 
 def p_ExpressionBotList(p):
@@ -187,10 +217,10 @@ def p_ExpressionBotList(p):
                         | Expression
     '''
     if len(p) == 2:
-        p[0] = TreeNode('ExpressionBotList', 0, 'INT', 0, p[1].children)
+        p[0] = TreeNode('ExpressionBotList', 0, 'INT', 0, [p[1]], p[1].TAC)
         return
     elif len(p) == 4:
-        p[0] = TreeNode('ExpressionBotList', 0, 'INT', 0, p[1].children + p[3].children)
+        p[0] = TreeNode('ExpressionBotList', 0, 'INT', 0, [p[1]] + p[3].children, p[1].TAC.append_TAC(p[3].TAC))
         return
 
 def p_TypeDecl(p):
@@ -445,17 +475,16 @@ def p_IncDecStmt(p):
                 | Expression MINUS_MINUS
     '''
     one_val = TreeNode('decimal_lit', 1, 'INT', 0, [])
+    p[0] = p[1]
     if p[1].isLvalue == 1:
         if p[2] == '++':
-            ThreeAddrCode.add_line([ThreeAddrCode.length() + 1, '+', p[1].data, p[1].data, one_val.data])
+            p[0].TAC.add_line(['+', p[1].data, p[1].data, one_val.data])
         else:
-            ThreeAddrCode.add_line([ThreeAddrCode.length() + 1, '-', p[1].data, p[1].data, one_val.data])
+            p[0].TAC.add_line(['-', p[1].data, p[1].data, one_val.data])
     else:
         print "*** Error: Lvalue required! ***"
-    p[0] = p[1]
     p[0].name = 'IncDecStmt'
     return
-    # parsed.append(p.slice)
 
 def p_ShortVarDecl(p):
     '''ShortVarDecl : ExpressionList ASSIGN_OP ExpressionList
@@ -466,13 +495,17 @@ def p_ShortVarDecl(p):
     if p[1].name == 'ExpressionList':
         l1 = len(p[1].children)
         l2 = len(p[3].children)
+
         if l1 == l2:
             for i in range(l1):
-                ThreeAddrCode.add_line([ThreeAddrCode.length() + 1, p[2], p[1].children[i].data, p[3].children[i].data, ''])
+                p[0].TAC.add_line([p[2], p[1].children[i].data, p[3].children[i].data, ''])
+
         else:
             print "*** Error: Assignment mismatch:", l1, "identifier(s) but", l2, "value(s)! ***"
+
     elif p[1].name == 'Expression':
-        ThreeAddrCode.add_line([ThreeAddrCode.length() + 1, p[2], p[1].data, p[3].data, ''])
+        p[0].TAC.add_line([p[2], p[1].data, p[3].data, ''])
+
     return
 
 def p_Assignment(p):
@@ -485,11 +518,11 @@ def p_Assignment(p):
         l2 = len(p[3].children)
         if l1 == l2:
             for i in range(l1):
-                ThreeAddrCode.add_line([ThreeAddrCode.length() + 1, p[2].data, p[1].children[i].data, p[3].children[i].data, ''])
+                p[0].TAC += [p[2].data, p[1].children[i].data, p[3].children[i].data, '']
         else:
             print "*** Error: Assignment mismatch:", l1, "identifier(s) but", l2, "value(s)! ***"
     elif p[1].name == 'Expression':
-        ThreeAddrCode.add_line([ThreeAddrCode.length() + 1, p[2].data, p[1].data, p[3].data, ''])
+        p[0].TAC += [p[2].data, p[1].data, p[3].data, '']
     return
 
 def p_assign_op(p):
@@ -506,13 +539,16 @@ def p_assign_op(p):
                  | AMP_EQ
                  | AND_OR_EQ
     '''
-    p[0] = TreeNode('assign_op', p[1], 'OPERATOR', 0, [])
+    p[0] = TreeNode('assign_op', p[1], 'OPERATOR')
     return
 
 def p_IfStmt(p):
     '''IfStmt : IF Expression Block elseBot
                  | IF SimpleStmt SEMICOLON  Expression Block elseBot
     '''
+    if len(p) == 5:
+        p[0] = TreeNode('IfStmt', 0, 'INT', 0, [])
+        p[0].TAC = p[2].TAC + ["temp"] + p[3].TAC
     parsed.append(p.slice)
 
 def p_elseBot(p):
@@ -615,9 +651,9 @@ def p_Expression(p):
         p[0] = p[1]
     elif len(p) == 4:
         p[0] = TreeNode('IDENTIFIER', temp_gen(), 'INT', 1, [])
-        ThreeAddrCode.add_line([ThreeAddrCode.length() + 1, p[2], p[0].data, p[1].data, p[3].data])
+        p[0].TAC += [p[2], p[0].data, p[1].data, p[3].data]
     p[0].name = 'Expression'
-    p[0].children = [p[0]]
+    # p[0].children = [p[0]]
     return
 
 def p_UnaryExpr(p):
@@ -628,7 +664,7 @@ def p_UnaryExpr(p):
         p[0] = p[1]
     elif len(p) == 3:
         p[0] = TreeNode('IDENTIFIER', temp_gen(), 'INT', 1, [])
-        ThreeAddrCode.add_line([ThreeAddrCode.length() + 1, p[1].data, p[0].data, p[2].data])
+        p[0].TAC += [p[1].data, p[0].data, p[2].data]
     p[0].name = 'UnaryExpr'
     return
 

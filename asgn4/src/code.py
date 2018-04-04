@@ -33,17 +33,46 @@ class ThreeAddressCode(Code):
         if leader not in self.leaders:
             self.leaders.append(leader)
 
+    def append_TAC(self, tac):
+        for i in range(tac.length()):
+            self.add_line(tac.code[i])
+        self.leaders += tac.leaders
+
 class TreeNode:
     """Defines a class for p which stores the element for the Node"""
 
-    def __init__(self, name, data, input_type, isLvalue, children):
+    def __init__(self, name, data, input_type, isLvalue = None, children = None, TAC = None):
         """Initializes class TreeNode"""
+
         self.name = name
         self.data = data
         self.input_type = input_type
-        self.isLvalue = isLvalue
-        self.children = children
+
+        if isLvalue is None:
+            self.isLvalue = 0
+        else:
+            self.isLvalue = isLvalue
+
+        if children is None:
+            self.children = []
+        else:
+            self.children = children
+
+        if TAC is None:
+            self.TAC = ThreeAddressCode()
+        else:
+            self.TAC = TAC
 
     def print_node(self):
-        print "Name:", self.name, "Data:", self.data, "Type:", self.input_type, "Is L-Value:", self.isLvalue, "Children:", self.children
+        import time
+        print "Name:", self.name, "Data:", self.data, "Type:", self.input_type, "Is L-Value:", self.isLvalue
+        print "Children:"
+        for child in self.children:
+            if isinstance(child, TreeNode):
+                child.print_node()
+            else:
+                print child
+
+        print "Three Address Code: "
+        self.TAC.print_code()
 
