@@ -428,30 +428,30 @@ def p_VarSpecMid(p):
     parsed.append(p.slice)
 
 def p_FunctionDecl(p):
-    '''FunctionDecl : FUNC FunctionName FunctionDeclTail
+    '''FunctionDecl : FUNC FunctionName Signature
+                | FUNC FunctionName Signature FunctionBody
     '''
-    parsed.append(p.slice)
-
-def p_FunctionDeclTail(p):
-    '''FunctionDeclTail : Function
-                 | Signature
-    '''
-    parsed.append(p.slice)
+    p[0] = TreeNode('FunctionDecl', 0, 'INT')
+    p[0].TAC.add_line(['func', p[2].data, '', ''])
+    p[0].TAC.append_TAC(p[4].TAC)
+    p[0].print_node()
+    return
+    # p[2].print_node()
+    # p[4].print_node()
+    # parsed.append(p.slice)
 
 def p_FunctionName(p):
     '''FunctionName : IDENTIFIER
     '''
-    parsed.append(p.slice)
-
-def p_Function(p):
-    '''Function : Signature FunctionBody
-    '''
-    parsed.append(p.slice)
+    p[0] = TreeNode('FunctionName', p[1], 'INT')
+    return
 
 def p_FunctionBody(p):
     '''FunctionBody : Block
     '''
-    parsed.append(p.slice)
+    p[0] = p[1]
+    p[0].name = 'FunctionBody'
+    return
 
 def p_SimpleStmt(p):
     '''SimpleStmt : Expression
@@ -582,22 +582,23 @@ def p_elseTail(p):
                  | Block
     '''
     p[0] = p[1]
+    p[0].name = 'elseTail'
     return
 
 def p_SwitchStmt(p):
     '''SwitchStmt : ExprSwitchStmt
     '''
-    p[0] = p[1]
-    parsed.append(p.slice)
+    p[0] = TreeNode('SwitchStmt', 0, 'INT', 0, [], p[1].TAC)
+    return
 
 def p_ExprSwitchStmt(p):
     '''ExprSwitchStmt : SWITCH SimpleStmt SEMICOLON  ExpressionBot LCURLY ExprCaseClauseList RCURLY
                  | SWITCH LCURLY ExprCaseClauseList RCURLY
                  | SWITCH Expression LCURLY ExprCaseClauseList RCURLY
     '''
-    l1 = label_gen()
-    l2 = label_gen()
     if len(p) == 6:
+        l1 = label_gen()
+        l2 = label_gen()
         p[0] = TreeNode('ExprSwitchStmt', 0, 'INT')
         p[0].TAC.append_TAC(p[2].TAC)
         t1= temp_gen()
@@ -609,12 +610,7 @@ def p_ExprSwitchStmt(p):
             if i in p[4].TAC.leaders[1:]:
                 p[0].TAC.add_line(['goto', l2, '', ''])
             p[0].TAC.add_line(p[4].TAC.code[i])
-
         p[0].TAC.add_line([l2])
-
-        # p[0].children = p[4].children
-    p[0].print_node()
-    # print p[0].children
     return
 
 def p_ExprCaseClauseList(p):
@@ -623,7 +619,6 @@ def p_ExprCaseClauseList(p):
     '''
     TAC1 = ThreeAddressCode()
     TAC2 = ThreeAddressCode()
-
     if len(p) == 3:
         TAC1 = p[1].data
         TAC2 = p[2].data
@@ -645,7 +640,6 @@ def p_ExprCaseClause(p):
     p[0] = TreeNode('ExprCaseClause', 0, 'INT')
     # p[0].TAC.append_TAC(p[1].TAC)
     p[0].TAC.add_line([l1])
-    # 
     # p[0].TAC.add_line(['ifgotoneq', p[1].children, p[1].children, l1])
     p[0].TAC.append_TAC(p[3].TAC)
     p[0].children = [[p[1].data,l1]]
@@ -659,7 +653,7 @@ def p_ExprSwitchCase(p):
                  | CASE Expression
     '''
     p[0] = TreeNode('ExprSwitchCase', 0, 'INT')
-    if len(p)==3:
+    if len(p) == 3:
         p[0].data = p[2].data
         p[0].TAC = p[2].TAC
 
@@ -679,6 +673,7 @@ def p_ForStmt(p):
         p[0].TAC.append_TAC(p[3].TAC)
         p[0].TAC.add_line(['goto', l1])
         p[0].TAC.add_line([l2])
+
     if len(p) == 3:
         l1 = label_gen()
         # l2 = label_gen()
@@ -784,8 +779,9 @@ def p_PrimaryExpr(p):
         elif p[1].name == 'Operand':
             p[0] = p[1]
     elif len(p) == 3:
-        p[0]
-        # TODO
+        if p[2].name == 'Arguments':
+            p[0] = p[1]
+            p[0].TAC.add_line(['call', p[1].data, '', ''])
     p[0].name = 'PrimaryExpr'
     return
 
@@ -855,7 +851,7 @@ def p_float_lit(p):
     return
 
 def p_FunctionLit(p):
-    '''FunctionLit : FUNC Function
+    '''FunctionLit : FUNC Signature FunctionBody
     '''
     parsed.append(p.slice)
 
@@ -916,7 +912,9 @@ def p_Arguments(p):
                  | LROUND IDENTIFIER DOT IDENTIFIER COMMA Expression DDD COMMA RROUND
                  | LROUND IDENTIFIER DOT IDENTIFIER COMMA Expression COMMA RROUND
     '''
-    parsed.append(p.slice)
+    if len(p) == 3:
+        p[0] = TreeNode('Arguments', 0, 'INT')
+    return
 
 def p_error(p):
     if p == None:

@@ -61,5 +61,9 @@ func main() {
     //a++
     //a--
     //1++
+    foo()
+}
 
+func foo() {
+    x := 1
 }
