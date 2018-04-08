@@ -596,16 +596,23 @@ def p_ExprSwitchStmt(p):
                  | SWITCH Expression LCURLY ExprCaseClauseList RCURLY
     '''
     l1 = label_gen()
+    l2 = label_gen()
     if len(p) == 6:
         p[0] = TreeNode('ExprSwitchStmt', 0, 'INT')
         p[0].TAC.append_TAC(p[2].TAC)
         t1= temp_gen()
         p[0].TAC.add_line(['=', t1 , p[2].data, ''])
-        p[0].TAC.add_line([l1])
+        p[0].TAC.append_TAC(p[4].data)
         for i in range(len(p[4].children)):
             p[0].TAC.add_line(['ifgotoeq', t1, p[4].children[i][0], p[4].children[i][1]])
-        p[0].TAC.append_TAC(p[4].TAC)
-        p[0].children = p[4].children
+        for i in range(p[4].TAC.length()):
+            if i in p[4].TAC.leaders[1:]:
+                p[0].TAC.add_line(['goto', l2, '', ''])
+            p[0].TAC.add_line(p[4].TAC.code[i])
+
+        p[0].TAC.add_line([l2])
+
+        # p[0].children = p[4].children
     p[0].print_node()
     # print p[0].children
     return
@@ -614,12 +621,19 @@ def p_ExprCaseClauseList(p):
     '''ExprCaseClauseList : empty
                  | ExprCaseClauseList ExprCaseClause
     '''
+    TAC1 = ThreeAddressCode()
+    TAC2 = ThreeAddressCode()
+
     if len(p) == 3:
-        # print p[2].children
-        p[0] = TreeNode('ExprCaseClauseList', 0, 'INT', 0, p[1].children + p[2].children, p[1].TAC)
+        TAC1 = p[1].data
+        TAC2 = p[2].data
+        p[0] = TreeNode('ExprCaseClauseList', TAC1, 'INT', 0, p[1].children + p[2].children, p[1].TAC)
+        p[0].TAC.add_leader(p[0].TAC.length())
         p[0].TAC.append_TAC(p[2].TAC)
+        p[0].data.append_TAC(TAC2)
+
     else:
-        p[0] = TreeNode('ExprCaseClauseList', 0, 'INT')
+        p[0] = TreeNode('ExprCaseClauseList', TAC1, 'INT')
 
     return
     # parsed.append(p.slice)
@@ -635,6 +649,7 @@ def p_ExprCaseClause(p):
     # p[0].TAC.add_line(['ifgotoneq', p[1].children, p[1].children, l1])
     p[0].TAC.append_TAC(p[3].TAC)
     p[0].children = [[p[1].data,l1]]
+    p[0].data = p[1].TAC
     return
     # parsed.append(p.slice)
 
