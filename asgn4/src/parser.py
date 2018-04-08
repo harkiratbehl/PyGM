@@ -17,6 +17,10 @@ def temp_gen():
     i = randint(0, sys.maxint)
     return 'temp_' + str(i)
 
+def label_gen():
+    i = randint(0, sys.maxint)
+    return 'label_' + str(i)
+
 precedence = (
     ('left','IDENTIFIER'),
     ('right','ASSIGN_OP'),
@@ -107,7 +111,7 @@ def p_Block(p):
     '''
     p[0] = p[2]
     p[0].name = 'Block'
-    p[0].print_node()
+    # p[0].print_node()
     return
     # parsed.append(p.slice)
 
@@ -543,25 +547,42 @@ def p_assign_op(p):
     return
 
 def p_IfStmt(p):
-    '''IfStmt : IF Expression Block elseBot
-                 | IF SimpleStmt SEMICOLON  Expression Block elseBot
+    '''IfStmt : IF Expression Block
+            | IF Expression Block ELSE elseTail
     '''
-    if len(p) == 5:
-        p[0] = TreeNode('IfStmt', 0, 'INT', 0, [])
-        p[0].TAC = p[2].TAC + ["temp"] + p[3].TAC
-    parsed.append(p.slice)
+    if len(p) == 4:
+        l1 = label_gen()
+        p[0] = TreeNode('IfStmt', 0, 'INT')
+        p[0].TAC.append_TAC(p[2].TAC)
+        p[0].TAC.add_line(['ifgotoeq', p[2].data, 0, l1])
+        p[0].TAC.append_TAC(p[3].TAC)
+        p[0].TAC.add_line([l1])
+    if len(p) == 6:
+        l1 = label_gen()
+        l2 = label_gen()
+        p[0] = TreeNode('IfStmt', 0, 'INT')
+        p[0].TAC.append_TAC(p[2].TAC)
+        p[0].TAC.add_line(['ifgotoeq', p[2].data, 0, l1])
+        p[0].TAC.append_TAC(p[3].TAC)
+        p[0].TAC.add_line(['goto', l2])
+        p[0].TAC.add_line([l1])
+        p[0].TAC.append_TAC(p[5].TAC)
+        p[0].TAC.add_line([l2])
+    p[0].print_node()
+    return
 
-def p_elseBot(p):
-    '''elseBot : empty
-                 | ELSE elseTail
-    '''
-    parsed.append(p.slice)
+# def p_elseBot(p):
+    # '''elseBot : empty
+                 # | ELSE elseTail
+    # '''
+    # parsed.append(p.slice)
 
 def p_elseTail(p):
     '''elseTail : IfStmt
                  | Block
     '''
-    parsed.append(p.slice)
+    p[0] = p[1]
+    return
 
 def p_SwitchStmt(p):
     '''SwitchStmt : ExprSwitchStmt
@@ -593,9 +614,28 @@ def p_ExprSwitchCase(p):
     parsed.append(p.slice)
 
 def p_ForStmt(p):
-    '''ForStmt : FOR ExpressionBot Block
+    '''ForStmt : FOR Expression Block
+                 | FOR Block
     '''
-    parsed.append(p.slice)
+    p[0] = TreeNode('ForStmt', 0, 'INT')
+    if len(p) == 4:
+        l1 = label_gen()
+        l2 = label_gen()
+        p[0].TAC.add_line([l1])
+        p[0].TAC.append_TAC(p[2].TAC)
+        p[0].TAC.add_line(['ifgotoeq', p[2].data, 0, l2])
+        p[0].TAC.append_TAC(p[3].TAC)
+        p[0].TAC.add_line(['goto', l1])
+        p[0].TAC.add_line([l2])
+    if len(p) == 3:
+        l1 = label_gen()
+        # l2 = label_gen()
+        p[0].TAC.add_line([l1])
+        p[0].TAC.append_TAC(p[2].TAC)
+        p[0].TAC.add_line(['goto', l1])
+        # p[0].TAC.add_line([l2])
+    p[0].print_node()
+    return
 
 def p_ExpressionBot(p):
     '''ExpressionBot : empty
