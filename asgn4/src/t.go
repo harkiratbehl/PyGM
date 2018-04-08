@@ -10,9 +10,9 @@ func main() {
         //s++
     }
     switch i {
-    case 1:
+    case 1+1:
         i++
-    case 2:
+    case 2+1:
         i--
     }
     //a+1

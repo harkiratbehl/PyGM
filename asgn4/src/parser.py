@@ -599,18 +599,24 @@ def p_ExprSwitchStmt(p):
     if len(p) == 6:
         p[0] = TreeNode('ExprSwitchStmt', 0, 'INT')
         p[0].TAC.append_TAC(p[2].TAC)
-        p[0].TAC.add_line(['=', temp_gen(), p[2].data, ''])
+        t1= temp_gen()
+        p[0].TAC.add_line(['=', t1 , p[2].data, ''])
+        p[0].TAC.add_line([l1])
+        for i in range(len(p[4].children)):
+            p[0].TAC.add_line(['ifgotoeq', t1, p[4].children[i][0], p[4].children[i][1]])
         p[0].TAC.append_TAC(p[4].TAC)
+        p[0].children = p[4].children
     p[0].print_node()
+    # print p[0].children
     return
-    # parsed.append(p.slice)
 
 def p_ExprCaseClauseList(p):
     '''ExprCaseClauseList : empty
                  | ExprCaseClauseList ExprCaseClause
     '''
     if len(p) == 3:
-        p[0] = TreeNode('ExprCaseClauseList', 0, 'INT', 0, [p[2].data] + p[1].children, p[1].TAC)
+        # print p[2].children
+        p[0] = TreeNode('ExprCaseClauseList', 0, 'INT', 0, p[1].children + p[2].children, p[1].TAC)
         p[0].TAC.append_TAC(p[2].TAC)
     else:
         p[0] = TreeNode('ExprCaseClauseList', 0, 'INT')
@@ -623,9 +629,12 @@ def p_ExprCaseClause(p):
     '''
     l1 = label_gen()
     p[0] = TreeNode('ExprCaseClause', 0, 'INT')
+    # p[0].TAC.append_TAC(p[1].TAC)
     p[0].TAC.add_line([l1])
+    # 
+    # p[0].TAC.add_line(['ifgotoneq', p[1].children, p[1].children, l1])
     p[0].TAC.append_TAC(p[3].TAC)
-    # p[0].data = p[1].data
+    p[0].children = [[p[1].data,l1]]
     return
     # parsed.append(p.slice)
 
@@ -634,7 +643,11 @@ def p_ExprSwitchCase(p):
                  | DEFAULT
                  | CASE Expression
     '''
-    
+    p[0] = TreeNode('ExprSwitchCase', 0, 'INT')
+    if len(p)==3:
+        p[0].data = p[2].data
+        p[0].TAC = p[2].TAC
+
     parsed.append(p.slice)
 
 def p_ForStmt(p):
