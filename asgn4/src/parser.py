@@ -5,6 +5,8 @@ from lexer import tokens
 
 from code import TreeNode
 from code import ThreeAddressCode
+from symboltable import SymbolTable
+from symboltable import symboltable_node
 import sys
 from random import *
 import logging
@@ -12,6 +14,7 @@ import logging
 parsed=[]
 
 ThreeAddrCode = ThreeAddressCode()
+SymbolTable = SymbolTable()
 
 def temp_gen():
     i = randint(0, sys.maxint)
@@ -58,6 +61,8 @@ def p_SourceFile(p):
     '''
     # TODO: Ignoring package name and Imports for now
     p[0] = p[5]
+    p[0].print_node() 
+    SymbolTable.print_symbol_table()
     return
     # parsed.append(p.slice)
 
@@ -66,6 +71,7 @@ def p_ImportDeclList(p):
                 | empty
     '''
     # TODO: Ignoring Imports for now
+    p[0]=p[1]
     return
     # parsed.append(p.slice)
 
@@ -73,13 +79,21 @@ def p_TopLevelDeclList(p):
     '''TopLevelDeclList : TopLevelDecl SEMICOLON TopLevelDeclList
                         | empty
     '''
-    parsed.append(p.slice)
+    if len(p) == 4:
+        if p[3] != None:
+            p[0] = TreeNode('TopLevelDeclList', 0, 'INT', 0, [p[1]] + p[3].children, p[1].TAC)
+            p[0].TAC.append_TAC(p[3].TAC)
+        else:
+            p[0] = TreeNode('TopLevelDeclList', 0, 'INT', 0, [p[1]], p[1].TAC)   
+    return
 
 def p_TopLevelDecl(p):
     '''TopLevelDecl  : Declaration
                     | FunctionDecl
     '''
-    parsed.append(p.slice)
+    p[0]=p[1]
+    # p[0].print_node()
+    return
 
 def p_ImportDecl(p):
     '''ImportDecl : IMPORT LROUND ImportSpecList RROUND
@@ -124,7 +138,7 @@ def p_StatementList(p):
         p[0].TAC.append_TAC(p[3].TAC)
     else:
         p[0] = TreeNode('StatementList', 0, 'INT')
-    parsed.append(p.slice)
+    # p[0].print_node()
 
 def p_Statement(p):
     '''Statement : Declaration
@@ -140,6 +154,7 @@ def p_Statement(p):
     '''
     p[0] = p[1]
     p[0].name = 'Statement'
+    
 
 def p_Declaration(p):
     '''Declaration  : ConstDecl
@@ -268,16 +283,6 @@ def p_Type(p):
                  | LROUND IDENTIFIER DOT IDENTIFIER RROUND
     '''
     parsed.append(p.slice)
-
-# def p_TypeName(p):
-#     '''TypeName  : IDENTIFIER DOT IDENTIFIER
-#     '''
-#     parsed.append(p.slice)
-
-# def p_QualifiedIdent(p):
-#     '''QualifiedIdent : IDENTIFIER DOT IDENTIFIER
-#     '''
-#     parsed.append(p.slice)
 
 def p_TypeLit(p):
     '''TypeLit : ArrayType
@@ -466,7 +471,7 @@ def p_FunctionDecl(p):
     p[0] = TreeNode('FunctionDecl', 0, 'INT')
     p[0].TAC.add_line(['func', p[2].data, '', ''])
     p[0].TAC.append_TAC(p[4].TAC)
-    p[0].print_node()
+    # p[0].print_node()
     return
     # p[2].print_node()
     # p[4].print_node()
@@ -528,6 +533,11 @@ def p_ShortVarDecl(p):
         l2 = len(p[3].children)
         if l1 == l2:
             for i in range(l1):
+                if SymbolTable.search_node(p[1].children[i].data) == 0:
+                    node = symboltable_node()
+                    node.name = p[1].children[i].data
+                    node.type = 'INT'
+                    SymbolTable.add_node(node)
                 p[0].TAC.add_line([p[2], p[1].children[i].data, p[3].children[i].data, ''])
         else:
             print "*** Error: Assignment mismatch:", l1, "identifier(s) but", l2, "value(s)! ***"
@@ -536,8 +546,14 @@ def p_ShortVarDecl(p):
         p[0].TAC.append_TAC(p[3].TAC)
         p[0].TAC.append_TAC(p[1].TAC)
         p[0].TAC.add_line([p[2], p[1].data, p[3].data, ''])
+        if SymbolTable.search_node(p[1].data) == 0:
+            node = symboltable_node()
+            node.name = p[1].data
+            node.type = 'INT'
+            SymbolTable.add_node(node)
 
     return
+
 
 def p_Assignment(p):
     '''Assignment : ExpressionList assign_op ExpressionList
@@ -549,6 +565,16 @@ def p_Assignment(p):
         l2 = len(p[3].children)
         if l1 == l2:
             for i in range(l1):
+                if SymbolTable.search_node(p[1].children[i].data) == 0:
+                    node = symboltable_node()
+                    node.name = p[1].children[i].data
+                    node.type = 'INT'
+                    SymbolTable.add_node(node)
+                if SymbolTable.search_node(p[3].children[i].data) == 0:
+                    node = symboltable_node()
+                    node.name = p[3].children[i].data
+                    node.type = 'INT'
+                    SymbolTable.add_node(node)
                 p[0].TAC.add_line([p[2].data, p[1].children[i].data, p[3].children[i].data, ''])
         else:
             print "*** Error: Assignment mismatch:", l1, "identifier(s) but", l2, "value(s)! ***"
@@ -558,6 +584,16 @@ def p_Assignment(p):
         p[0].TAC.append_TAC(p[3].TAC)
         p[0].TAC.append_TAC(p[1].TAC)
         p[0].TAC.add_line([p[2].data, p[1].data, p[3].data, ''])
+        if SymbolTable.search_node(p[1].data) == 0:# and p[1].children[i].isLvalue ==1:
+            node = symboltable_node()
+            node.name = p[1].data
+            node.type = 'INT'
+            SymbolTable.add_node(node)
+        if SymbolTable.search_node(p[3].data) == 0:# and p[1].children[i].isLvalue ==1:
+            node = symboltable_node()
+            node.name = p[3].data
+            node.type = 'INT'
+            SymbolTable.add_node(node)
 
     return
 
@@ -600,7 +636,7 @@ def p_IfStmt(p):
         p[0].TAC.add_line([l1])
         p[0].TAC.append_TAC(p[5].TAC)
         p[0].TAC.add_line([l2])
-    p[0].print_node()
+    # p[0].print_node()
     return
 
 def p_elseTail(p):
@@ -708,7 +744,6 @@ def p_ForStmt(p):
         p[0].TAC.append_TAC(p[2].TAC)
         p[0].TAC.add_line(['goto', l1])
         # p[0].TAC.add_line([l2])
-    # p[0].print_node()
     return
 
 
