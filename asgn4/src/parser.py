@@ -168,10 +168,12 @@ def p_ConstSpec(p):
                  | IDENTIFIER Type EQ Expression
                  | IdentifierList Type EQ ExpressionList
                  | IDENTIFIER Type EQ ExpressionList
+
                  | IdentifierList IDENTIFIER DOT IDENTIFIER EQ Expression
                  | IDENTIFIER IDENTIFIER DOT IDENTIFIER EQ Expression
                  | IdentifierList IDENTIFIER DOT IDENTIFIER EQ ExpressionList
                  | IDENTIFIER IDENTIFIER DOT IDENTIFIER EQ ExpressionList
+
                  | IdentifierList IDENTIFIER EQ Expression
                  | IDENTIFIER IDENTIFIER EQ Expression
                  | IdentifierList IDENTIFIER EQ ExpressionList
@@ -181,27 +183,27 @@ def p_ConstSpec(p):
                  | IdentifierList EQ ExpressionList
                  | IDENTIFIER EQ ExpressionList
     '''
+
+
     parsed.append(p.slice)
 
 def p_IdentifierList(p):
-    '''IdentifierList : IDENTIFIER IdentifierBotList
+    '''IdentifierList : IDENTIFIER COMMA IdentifierBotList
     '''
-    # p[0] = [{'place': p[1]}] + p[2]
-    # p[0] = TreeNode('IdentifierList', 0, 'INT', 0, p[1].children + p[3].children)
-    # parsed.append(p.slice)
+    p[0] = TreeNode('IdentifierList', 0, 'INT', 0, [p[1]] + p[3].children)
     return
 
 def p_IdentifierBotList(p):
-    '''IdentifierBotList : COMMA IDENTIFIER
-                 | IdentifierBotList COMMA IDENTIFIER
+    '''IdentifierBotList : IDENTIFIER COMMA IdentifierBotList
+                 | IDENTIFIER
     '''
-    return
-    # if len(p) == 3:
-        # p[0] = [{'place': p[2]}]
-        # return
-    # elif len(p) == 4:
-        # p[0] = p[1] + [{'place': p[3]}]
-        # return
+    if len(p) == 2:
+        p[0] = TreeNode('IdentifierBotList', p[1], 'INT')
+        return
+    elif len(p) == 4:
+        p[0] = TreeNode('IdentifierBotList', 0, 'INT', 0, [p[1]] + p[3].children)
+        return
+
 
 def p_ExpressionList(p):
     '''ExpressionList : Expression COMMA ExpressionBotList
@@ -392,32 +394,62 @@ def p_ParameterDecl(p):
 def p_VarDecl(p):
     '''VarDecl : VAR VarSpecTopList
     '''
+
+    p[0] = p[1]
+    p[0].name = 'VarDecl'
+    return
     parsed.append(p.slice)
 
 def p_VarSpecTopList(p):
     '''VarSpecTopList : VarSpec
                  | LROUND VarSpecList RROUND
     '''
-    parsed.append(p.slice)
+
+    if len(p) == 2:
+        p[0] = p[1]
+        p[0].name = 'VarSpecTopList'
+    else:
+        p[0] = p[2]
+        ####TODO
+    return
+
 
 def p_VarSpecList(p):
     '''VarSpecList : empty
                  | VarSpecList VarSpec SEMICOLON
     '''
+
+
     parsed.append(p.slice)
 
 def p_VarSpec(p):
     '''VarSpec : IdentifierList Type VarSpecMid
                 | IDENTIFIER Type VarSpecMid
+
                 | IdentifierList IDENTIFIER VarSpecMid
                 | IDENTIFIER IDENTIFIER VarSpecMid
+
                 | IdentifierList IDENTIFIER DOT IDENTIFIER VarSpecMid
                 | IDENTIFIER IDENTIFIER DOT IDENTIFIER VarSpecMid
+
                 | IdentifierList EQ ExpressionList
                 | IDENTIFIER EQ ExpressionList
                 | IdentifierList EQ Expression
                 | IDENTIFIER EQ Expression
     '''
+
+    # if len(p) == 4:
+    #     if p[2].type == 'IDENTIFIER':
+    #         #TODO
+    #     else if p[2].type == 'EQ':
+    #         #TODO
+    #     else:
+    #         if p[1].type == 'IDENTIFIER':
+
+    #         else:
+    #             #TODO
+    # else:
+    #     #TODO 
     parsed.append(p.slice)
 
 def p_VarSpecMid(p):
@@ -571,12 +603,6 @@ def p_IfStmt(p):
     p[0].print_node()
     return
 
-# def p_elseBot(p):
-    # '''elseBot : empty
-                 # | ELSE elseTail
-    # '''
-    # parsed.append(p.slice)
-
 def p_elseTail(p):
     '''elseTail : IfStmt
                  | Block
@@ -592,7 +618,8 @@ def p_SwitchStmt(p):
     return
 
 def p_ExprSwitchStmt(p):
-    '''ExprSwitchStmt : SWITCH SimpleStmt SEMICOLON  ExpressionBot LCURLY ExprCaseClauseList RCURLY
+    '''ExprSwitchStmt : SWITCH SimpleStmt SEMICOLON LCURLY ExprCaseClauseList RCURLY
+                 | SWITCH SimpleStmt SEMICOLON Expression LCURLY ExprCaseClauseList RCURLY
                  | SWITCH LCURLY ExprCaseClauseList RCURLY
                  | SWITCH Expression LCURLY ExprCaseClauseList RCURLY
     '''
@@ -684,11 +711,10 @@ def p_ForStmt(p):
     # p[0].print_node()
     return
 
-def p_ExpressionBot(p):
-    '''ExpressionBot : empty
-                 | Expression
-    '''
-    parsed.append(p.slice)
+
+
+
+
 
 def p_ReturnStmt(p):
     '''ReturnStmt : RETURN
@@ -711,6 +737,9 @@ def p_GotoStmt(p):
     '''GotoStmt : GOTO IDENTIFIER
     '''
     parsed.append(p.slice)
+
+
+
 
 def p_Expression(p):
     '''Expression : UnaryExpr

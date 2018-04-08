@@ -1,17 +1,20 @@
 package main
 
-func main() {
-	var wflg, tflg int = 0, 0
-	var dflg int = 0
-	var c string
-	switch c {
-	case "w":
-	case "W":
-		wflg = 1
-	case "t":
-	case "T":
-		tflg = 1
-	case "d":
-		dflg = 1
-	}
+func main(){
+	i := 5
+	switch i {
+    case 1+1:
+        i++
+    case 2+1:
+        i--
+    case 3+1:
+        i++
+    case 4+1:
+        i--
+    case 5+1:
+        i++
+    case 6+1:
+        i--
+    }
 }
+    

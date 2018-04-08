@@ -1,8 +1,8 @@
 package main
 
-func main() {
-	i := 1
-	for i <= 10 {
-		i := i + 1
+func main(){
+	for (3) {
+		b++
+		a:=1
 	}
 }
