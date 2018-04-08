@@ -1,12 +1,19 @@
 package main
 
 func main() {
-    for (a<3) {
+    for (3) {
         b++
+        a=1
     //} else if (a>4) {
         //as+=a
     //} else {
         //s++
+    }
+    switch i {
+    case 1:
+        i++
+    case 2:
+        i--
     }
     //a+1
     //b=a*4

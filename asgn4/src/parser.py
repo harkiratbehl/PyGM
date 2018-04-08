@@ -587,30 +587,54 @@ def p_elseTail(p):
 def p_SwitchStmt(p):
     '''SwitchStmt : ExprSwitchStmt
     '''
+    p[0] = p[1]
     parsed.append(p.slice)
 
 def p_ExprSwitchStmt(p):
     '''ExprSwitchStmt : SWITCH SimpleStmt SEMICOLON  ExpressionBot LCURLY ExprCaseClauseList RCURLY
-                 | SWITCH ExpressionBot LCURLY ExprCaseClauseList RCURLY
+                 | SWITCH LCURLY ExprCaseClauseList RCURLY
+                 | SWITCH Expression LCURLY ExprCaseClauseList RCURLY
     '''
-    parsed.append(p.slice)
+    l1 = label_gen()
+    if len(p) == 6:
+        p[0] = TreeNode('ExprSwitchStmt', 0, 'INT')
+        p[0].TAC.append_TAC(p[2].TAC)
+        p[0].TAC.add_line(['=', temp_gen(), p[2].data, ''])
+        p[0].TAC.append_TAC(p[4].TAC)
+    p[0].print_node()
+    return
+    # parsed.append(p.slice)
 
 def p_ExprCaseClauseList(p):
     '''ExprCaseClauseList : empty
                  | ExprCaseClauseList ExprCaseClause
     '''
-    parsed.append(p.slice)
+    if len(p) == 3:
+        p[0] = TreeNode('ExprCaseClauseList', 0, 'INT', 0, [p[2].data] + p[1].children, p[1].TAC)
+        p[0].TAC.append_TAC(p[2].TAC)
+    else:
+        p[0] = TreeNode('ExprCaseClauseList', 0, 'INT')
+
+    return
+    # parsed.append(p.slice)
 
 def p_ExprCaseClause(p):
     '''ExprCaseClause : ExprSwitchCase COLON StatementList
     '''
-    parsed.append(p.slice)
+    l1 = label_gen()
+    p[0] = TreeNode('ExprCaseClause', 0, 'INT')
+    p[0].TAC.add_line([l1])
+    p[0].TAC.append_TAC(p[3].TAC)
+    # p[0].data = p[1].data
+    return
+    # parsed.append(p.slice)
 
 def p_ExprSwitchCase(p):
     '''ExprSwitchCase : CASE ExpressionList
                  | DEFAULT
                  | CASE Expression
     '''
+    
     parsed.append(p.slice)
 
 def p_ForStmt(p):
@@ -634,7 +658,7 @@ def p_ForStmt(p):
         p[0].TAC.append_TAC(p[2].TAC)
         p[0].TAC.add_line(['goto', l1])
         # p[0].TAC.add_line([l2])
-    p[0].print_node()
+    # p[0].print_node()
     return
 
 def p_ExpressionBot(p):
