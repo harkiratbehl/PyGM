@@ -223,7 +223,7 @@ def p_IdentifierBotList(p):
 def p_ExpressionList(p):
     '''ExpressionList : Expression COMMA ExpressionBotList
     '''
-    p[0] = TreeNode('ExpressionList', 0, 'INT', 0, [p[1]] + p[3].children, p[1].TAC)
+    p[0] = TreeNode('ExpressionList', 0, 'INT', [p[1].isLvalue] + p[3].isLvalue, [p[1]] + p[3].children, p[1].TAC)
     p[0].TAC.append_TAC(p[3].TAC)
     return
 
@@ -232,10 +232,10 @@ def p_ExpressionBotList(p):
                         | Expression
     '''
     if len(p) == 2:
-        p[0] = TreeNode('ExpressionBotList', 0, 'INT', 0, [p[1]], p[1].TAC)
+        p[0] = TreeNode('ExpressionBotList', 0, 'INT', [p[1].isLvalue], [p[1]], p[1].TAC)
         return
     elif len(p) == 4:
-        p[0] = TreeNode('ExpressionBotList', 0, 'INT', 0, [p[1]] + p[3].children, p[1].TAC)
+        p[0] = TreeNode('ExpressionBotList', 0, 'INT', [p[1].isLvalue] + p[3].isLvalue, [p[1]] + p[3].children, p[1].TAC)
         p[0].TAC.append_TAC(p[3].TAC)
         return
 
@@ -533,26 +533,32 @@ def p_ShortVarDecl(p):
         l2 = len(p[3].children)
         if l1 == l2:
             for i in range(l1):
-                if SymbolTable.search_node(p[1].children[i].data) == 0:
-                    node = symboltable_node()
-                    node.name = p[1].children[i].data
-                    node.type = 'INT'
-                    SymbolTable.add_node(node)
-                p[0].TAC.add_line([p[2], p[1].children[i].data, p[3].children[i].data, ''])
+                if p[1].children[i].isLvalue == 0:
+                    print "*** Error: Cannot assign to constant ***"   
+                else: 
+                    if SymbolTable.search_node(p[1].children[i].data) == 0:
+                        node = symboltable_node()
+                        node.name = p[1].children[i].data
+                        node.type = 'INT'
+                        SymbolTable.add_node(node)
+                    p[0].TAC.add_line([p[2], p[1].children[i].data, p[3].children[i].data, ''])
         else:
             print "*** Error: Assignment mismatch:", l1, "identifier(s) but", l2, "value(s)! ***"
 
     elif p[1].name == 'Expression':
-        p[0].TAC.append_TAC(p[3].TAC)
-        p[0].TAC.append_TAC(p[1].TAC)
-        p[0].TAC.add_line([p[2], p[1].data, p[3].data, ''])
-        if SymbolTable.search_node(p[1].data) == 0:
-            node = symboltable_node()
-            node.name = p[1].data
-            node.type = 'INT'
-            SymbolTable.add_node(node)
-
-    return
+        if p[1].isLvalue == 0:
+            print "*** Error: Cannot declare and assign to constant ***"
+            return            
+        else:
+            p[0].TAC.append_TAC(p[3].TAC)
+            p[0].TAC.append_TAC(p[1].TAC)
+            p[0].TAC.add_line([p[2], p[1].data, p[3].data, ''])
+            if SymbolTable.search_node(p[1].data) == 0:
+                node = symboltable_node()
+                node.name = p[1].data
+                node.type = 'INT'
+                SymbolTable.add_node(node)
+            return
 
 
 def p_Assignment(p):
@@ -565,37 +571,44 @@ def p_Assignment(p):
         l2 = len(p[3].children)
         if l1 == l2:
             for i in range(l1):
-                if SymbolTable.search_node(p[1].children[i].data) == 0:
-                    node = symboltable_node()
-                    node.name = p[1].children[i].data
-                    node.type = 'INT'
-                    SymbolTable.add_node(node)
-                if SymbolTable.search_node(p[3].children[i].data) == 0:
-                    node = symboltable_node()
-                    node.name = p[3].children[i].data
-                    node.type = 'INT'
-                    SymbolTable.add_node(node)
-                p[0].TAC.add_line([p[2].data, p[1].children[i].data, p[3].children[i].data, ''])
+                if p[1].children[i].isLvalue == 0:
+                    print "*** Error: Cannot assign to constant ***"   
+                else: 
+                    if SymbolTable.search_node(p[1].children[i].data) == 0:
+                        node = symboltable_node()
+                        node.name = p[1].children[i].data
+                        node.type = 'INT'
+                        SymbolTable.add_node(node)
+        
+                    if SymbolTable.search_node(p[3].children[i].data) == 0 and p[3].children[i].isLvalue ==1:
+                        node = symboltable_node()
+                        node.name = p[3].children[i].data
+                        node.type = 'INT'
+                        SymbolTable.add_node(node)
+                    p[0].TAC.add_line([p[2].data, p[1].children[i].data, p[3].children[i].data, ''])
         else:
             print "*** Error: Assignment mismatch:", l1, "identifier(s) but", l2, "value(s)! ***"
 
     elif p[1].name == 'Expression':
         # p[0] = TreeNode('Assignment', 0, 'INT', 0, p[1].children + p[3].children, p[1].TAC.append_TAC(p[3].TAC))
-        p[0].TAC.append_TAC(p[3].TAC)
-        p[0].TAC.append_TAC(p[1].TAC)
-        p[0].TAC.add_line([p[2].data, p[1].data, p[3].data, ''])
-        if SymbolTable.search_node(p[1].data) == 0:# and p[1].children[i].isLvalue ==1:
-            node = symboltable_node()
-            node.name = p[1].data
-            node.type = 'INT'
-            SymbolTable.add_node(node)
-        if SymbolTable.search_node(p[3].data) == 0:# and p[1].children[i].isLvalue ==1:
-            node = symboltable_node()
-            node.name = p[3].data
-            node.type = 'INT'
-            SymbolTable.add_node(node)
-
-    return
+        if p[1].isLvalue == 0:
+            print "*** Error: Cannot assign to constant ***"
+            return            
+        else:
+            p[0].TAC.append_TAC(p[3].TAC)
+            p[0].TAC.append_TAC(p[1].TAC)
+            p[0].TAC.add_line([p[2].data, p[1].data, p[3].data, ''])
+            if SymbolTable.search_node(p[1].data) == 0:# and p[1].children[i].isLvalue ==1:
+                node = symboltable_node()
+                node.name = p[1].data
+                node.type = 'INT'
+                SymbolTable.add_node(node)
+            if SymbolTable.search_node(p[3].data) == 0 and p[3].isLvalue ==1:
+                node = symboltable_node()
+                node.name = p[3].data
+                node.type = 'INT'
+                SymbolTable.add_node(node)
+            return
 
 def p_assign_op(p):
     '''assign_op : EQ
