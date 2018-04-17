@@ -24,7 +24,6 @@ class SymbolTable:
 
     def __init__(self):
         """Initializes class TreeNode"""
-
         self.symbol_table = []
 
     def print_symbol_table(self):

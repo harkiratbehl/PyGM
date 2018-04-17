@@ -66,16 +66,17 @@ class TreeNode:
     def print_node(self):
         import time
         print "Name:", self.name, "Data:", self.data, "Type:", self.input_type, "Is L-Value?", self.isLvalue
-        # if len(self.children) != 0:
-            # print "Children:"
+        if len(self.children) != 0:
+            print "Children:"
             # time.sleep(0.7)
-            # for child in self.children:
-                # if isinstance(child, TreeNode):
-                    # child.print_node()
-                # else:
-                    # print child
+            for child in self.children:
+                if isinstance(child, TreeNode):
+                    child.print_node()
+                else:
+                    print child
 
         if self.TAC.length() != 0:
             print "Three Address Code: "
             self.TAC.print_code()
+        print ""
 

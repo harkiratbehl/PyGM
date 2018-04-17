@@ -61,19 +61,16 @@ def p_SourceFile(p):
     '''
     # TODO: Ignoring package name and Imports for now
     p[0] = p[5]
-    p[0].print_node() 
+    p[0].TAC.print_code()
     SymbolTable.print_symbol_table()
     return
-    # parsed.append(p.slice)
 
 def p_ImportDeclList(p):
     '''ImportDeclList : ImportDecl SEMICOLON ImportDeclList
                 | empty
     '''
     # TODO: Ignoring Imports for now
-    p[0]=p[1]
     return
-    # parsed.append(p.slice)
 
 def p_TopLevelDeclList(p):
     '''TopLevelDeclList : TopLevelDecl SEMICOLON TopLevelDeclList
@@ -84,15 +81,14 @@ def p_TopLevelDeclList(p):
             p[0] = TreeNode('TopLevelDeclList', 0, 'INT', 0, [p[1]] + p[3].children, p[1].TAC)
             p[0].TAC.append_TAC(p[3].TAC)
         else:
-            p[0] = TreeNode('TopLevelDeclList', 0, 'INT', 0, [p[1]], p[1].TAC)   
+            p[0] = TreeNode('TopLevelDeclList', 0, 'INT', 0, [p[1]], p[1].TAC)
     return
 
 def p_TopLevelDecl(p):
     '''TopLevelDecl  : Declaration
                     | FunctionDecl
     '''
-    p[0]=p[1]
-    # p[0].print_node()
+    p[0] = p[1]
     return
 
 def p_ImportDecl(p):
@@ -101,7 +97,6 @@ def p_ImportDecl(p):
     '''
     # TODO: Ignoring Imports for now
     return
-    # parsed.append(p.slice)
 
 def p_ImportSpecList(p):
     '''ImportSpecList : ImportSpec SEMICOLON ImportSpecList
@@ -109,7 +104,6 @@ def p_ImportSpecList(p):
     '''
     # TODO: Ignoring Imports for now
     return
-    # parsed.append(p.slice)
 
 def p_ImportSpec(p):
     '''ImportSpec :  DOT string_lit
@@ -118,16 +112,13 @@ def p_ImportSpec(p):
     '''
     # TODO: Ignoring Imports for now
     return
-    # parsed.append(p.slice)
 
 def p_Block(p):
     '''Block : LCURLY ScopeStart StatementList ScopeEnd RCURLY
     '''
-    p[0] = p[2]
+    p[0] = p[3]
     p[0].name = 'Block'
-    # p[0].print_node()
     return
-    # parsed.append(p.slice)
 
 def p_ScopeStart(p):
     '''ScopeStart : empty
@@ -148,7 +139,7 @@ def p_StatementList(p):
         p[0].TAC.append_TAC(p[3].TAC)
     else:
         p[0] = TreeNode('StatementList', 0, 'INT')
-    # p[0].print_node()
+    return
 
 def p_Statement(p):
     '''Statement : Declaration
@@ -164,7 +155,7 @@ def p_Statement(p):
     '''
     p[0] = p[1]
     p[0].name = 'Statement'
-    
+
 
 def p_Declaration(p):
     '''Declaration  : ConstDecl
@@ -233,7 +224,7 @@ def p_IdentifierBotList(p):
 def p_ExpressionList(p):
     '''ExpressionList : Expression COMMA ExpressionBotList
     '''
-    p[0] = TreeNode('ExpressionList', 0, 'INT', [p[1].isLvalue] + p[3].isLvalue, [p[1]] + p[3].children, p[1].TAC)
+    p[0] = TreeNode('ExpressionList', 0, 'INT', 0, [p[1]] + p[3].children, p[1].TAC)
     p[0].TAC.append_TAC(p[3].TAC)
     return
 
@@ -242,10 +233,10 @@ def p_ExpressionBotList(p):
                         | Expression
     '''
     if len(p) == 2:
-        p[0] = TreeNode('ExpressionBotList', 0, 'INT', [p[1].isLvalue], [p[1]], p[1].TAC)
+        p[0] = TreeNode('ExpressionBotList', 0, 'INT', 0, [p[1]], p[1].TAC)
         return
     elif len(p) == 4:
-        p[0] = TreeNode('ExpressionBotList', 0, 'INT', [p[1].isLvalue] + p[3].isLvalue, [p[1]] + p[3].children, p[1].TAC)
+        p[0] = TreeNode('ExpressionBotList', 0, 'INT', 0, [p[1]] + p[3].children, p[1].TAC)
         p[0].TAC.append_TAC(p[3].TAC)
         return
 
@@ -464,7 +455,7 @@ def p_VarSpec(p):
     #         else:
     #             #TODO
     # else:
-    #     #TODO 
+    #     #TODO
     parsed.append(p.slice)
 
 def p_VarSpecMid(p):
@@ -481,11 +472,7 @@ def p_FunctionDecl(p):
     p[0] = TreeNode('FunctionDecl', 0, 'INT')
     p[0].TAC.add_line(['func', p[2].data, '', ''])
     p[0].TAC.append_TAC(p[4].TAC)
-    # p[0].print_node()
     return
-    # p[2].print_node()
-    # p[4].print_node()
-    # parsed.append(p.slice)
 
 def p_FunctionName(p):
     '''FunctionName : IDENTIFIER
@@ -541,11 +528,13 @@ def p_ShortVarDecl(p):
     if p[1].name == 'ExpressionList':
         l1 = len(p[1].children)
         l2 = len(p[3].children)
+        p[0].TAC.append_TAC(p[3].TAC)
+        p[0].TAC.append_TAC(p[1].TAC)
         if l1 == l2:
             for i in range(l1):
                 if p[1].children[i].isLvalue == 0:
-                    print "*** Error: Cannot assign to constant ***"   
-                else: 
+                    print "*** Error: Lvalue required! ***"
+                else:
                     if SymbolTable.search_node(p[1].children[i].data) == 0:
                         node = symboltable_node()
                         node.name = p[1].children[i].data
@@ -557,8 +546,8 @@ def p_ShortVarDecl(p):
 
     elif p[1].name == 'Expression':
         if p[1].isLvalue == 0:
-            print "*** Error: Cannot declare and assign to constant ***"
-            return            
+            print "*** Error: Lvalue required! ***"
+            return
         else:
             p[0].TAC.append_TAC(p[3].TAC)
             p[0].TAC.append_TAC(p[1].TAC)
@@ -570,7 +559,6 @@ def p_ShortVarDecl(p):
                 SymbolTable.add_node(node)
             return
 
-
 def p_Assignment(p):
     '''Assignment : ExpressionList assign_op ExpressionList
                 | Expression assign_op Expression
@@ -579,17 +567,19 @@ def p_Assignment(p):
     if p[1].name == 'ExpressionList':
         l1 = len(p[1].children)
         l2 = len(p[3].children)
+        p[0].TAC.append_TAC(p[3].TAC)
+        p[0].TAC.append_TAC(p[1].TAC)
         if l1 == l2:
             for i in range(l1):
                 if p[1].children[i].isLvalue == 0:
-                    print "*** Error: Cannot assign to constant ***"   
-                else: 
+                    print "*** Error: Lvalue required! ***"
+                else:
                     if SymbolTable.search_node(p[1].children[i].data) == 0:
                         node = symboltable_node()
                         node.name = p[1].children[i].data
                         node.type = 'INT'
                         SymbolTable.add_node(node)
-        
+
                     if SymbolTable.search_node(p[3].children[i].data) == 0 and p[3].children[i].isLvalue ==1:
                         node = symboltable_node()
                         node.name = p[3].children[i].data
@@ -603,7 +593,7 @@ def p_Assignment(p):
         # p[0] = TreeNode('Assignment', 0, 'INT', 0, p[1].children + p[3].children, p[1].TAC.append_TAC(p[3].TAC))
         if p[1].isLvalue == 0:
             print "*** Error: Cannot assign to constant ***"
-            return            
+            return
         else:
             p[0].TAC.append_TAC(p[3].TAC)
             p[0].TAC.append_TAC(p[1].TAC)
@@ -659,7 +649,6 @@ def p_IfStmt(p):
         p[0].TAC.add_line([l1])
         p[0].TAC.append_TAC(p[5].TAC)
         p[0].TAC.add_line([l2])
-    # p[0].print_node()
     return
 
 def p_elseTail(p):
@@ -682,20 +671,20 @@ def p_ExprSwitchStmt(p):
                  | SWITCH LCURLY ScopeStart ExprCaseClauseList ScopeEnd RCURLY
                  | SWITCH Expression LCURLY ScopeStart ExprCaseClauseList ScopeEnd RCURLY
     '''
-    if len(p) == 6:
+    if len(p) == 8:
         l1 = label_gen()
         l2 = label_gen()
         p[0] = TreeNode('ExprSwitchStmt', 0, 'INT')
         p[0].TAC.append_TAC(p[2].TAC)
-        t1= temp_gen()
+        t1 = temp_gen()
         p[0].TAC.add_line(['=', t1 , p[2].data, ''])
-        p[0].TAC.append_TAC(p[4].data)
-        for i in range(len(p[4].children)):
-            p[0].TAC.add_line(['ifgotoeq', t1, p[4].children[i][0], p[4].children[i][1]])
-        for i in range(p[4].TAC.length()):
-            if i in p[4].TAC.leaders[1:]:
+        p[0].TAC.append_TAC(p[5].data)
+        for i in range(len(p[5].children)):
+            p[0].TAC.add_line(['ifgotoeq', t1, p[5].children[i][0], p[5].children[i][1]])
+        for i in range(p[5].TAC.length()):
+            if i in p[5].TAC.leaders[1:]:
                 p[0].TAC.add_line(['goto', l2, '', ''])
-            p[0].TAC.add_line(p[4].TAC.code[i])
+            p[0].TAC.add_line(p[5].TAC.code[i])
         p[0].TAC.add_line([l2])
     return
 
