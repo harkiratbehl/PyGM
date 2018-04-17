@@ -531,11 +531,13 @@ def p_ShortVarDecl(p):
     if p[1].name == 'ExpressionList':
         l1 = len(p[1].children)
         l2 = len(p[3].children)
+        p[0].TAC.append_TAC(p[3].TAC)
+        p[0].TAC.append_TAC(p[1].TAC)
         if l1 == l2:
             for i in range(l1):
                 if p[1].children[i].isLvalue == 0:
-                    print "*** Error: Cannot assign to constant ***"   
-                else: 
+                    print "*** Error: Cannot assign to constant ***"
+                else:
                     if SymbolTable.search_node(p[1].children[i].data) == 0:
                         node = symboltable_node()
                         node.name = p[1].children[i].data
@@ -548,7 +550,7 @@ def p_ShortVarDecl(p):
     elif p[1].name == 'Expression':
         if p[1].isLvalue == 0:
             print "*** Error: Cannot declare and assign to constant ***"
-            return            
+            return
         else:
             p[0].TAC.append_TAC(p[3].TAC)
             p[0].TAC.append_TAC(p[1].TAC)
@@ -569,6 +571,8 @@ def p_Assignment(p):
     if p[1].name == 'ExpressionList':
         l1 = len(p[1].children)
         l2 = len(p[3].children)
+        p[0].TAC.append_TAC(p[3].TAC)
+        p[0].TAC.append_TAC(p[1].TAC)
         if l1 == l2:
             for i in range(l1):
                 if p[1].children[i].isLvalue == 0:
@@ -814,7 +818,8 @@ def p_Expression(p):
     if len(p) == 2:
         p[0] = p[1]
     elif len(p) == 4:
-        p[0] = TreeNode('IDENTIFIER', temp_gen(), 'INT', 1, [])
+        p[0] = TreeNode('IDENTIFIER', temp_gen(), 'INT', 1, [], p[1].TAC)
+        p[0].TAC.append_TAC(p[3].TAC)
         p[0].TAC.add_line([p[2], p[0].data, p[1].data, p[3].data])
     p[0].name = 'Expression'
     return
