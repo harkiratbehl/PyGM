@@ -111,6 +111,7 @@ tokens = list(reserved_keywords.values()) + [
     # 'ESCAPED_CHAR', 'BYTE_VALUE', 'OCTAL_BYTE_VALUE', 'HEX_BYTE_VALUE',
     # 'UNDERSCORE'
     'NEWLINE',
+    'PREDEFINED_TYPES',
     'IDENTIFIER',
 
     'BREAK',
@@ -229,6 +230,10 @@ def t_RROUND(t):
 def t_RSQUARE(t):
     r'\]'
     setSemiMode()
+    return t
+
+def t_PREDEFINED_TYPES(t):
+    r'((int)|(float)|(char)|(string)|(bool))'
     return t
 
 def t_STRING_LIT(t):

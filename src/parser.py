@@ -11,8 +11,6 @@ import sys
 from random import *
 import logging
 
-parsed=[]
-
 ThreeAddrCode = ThreeAddressCode()
 SymbolTable = SymbolTable()
 
@@ -62,7 +60,7 @@ def p_SourceFile(p):
     # TODO: Ignoring package name and Imports for now
     p[0] = p[5]
     p[0].TAC.print_code()
-    SymbolTable.print_symbol_table()
+    # SymbolTable.print_symbol_table()
     return
 
 def p_ImportDeclList(p):
@@ -155,70 +153,54 @@ def p_Statement(p):
     '''
     p[0] = p[1]
     p[0].name = 'Statement'
-
+    return
 
 def p_Declaration(p):
-    '''Declaration  : ConstDecl
-                 | TypeDecl
-                 | VarDecl
+    '''Declaration : ConstDecl
+                   | TypeDecl
+                   | VarDecl
     '''
-    parsed.append(p.slice)
+    p[0] = p[1]
+    p[0].name = 'Declaration'
+    return
 
 def p_ConstDecl(p):
     '''ConstDecl : CONST LROUND ConstSpecList RROUND
                  | CONST ConstSpec
-                 | CONST IDENTIFIER
     '''
-    parsed.append(p.slice)
+    return
 
 def p_ConstSpecList(p):
     '''ConstSpecList : empty
-                 | ConstSpecList ConstSpec SEMICOLON
-                 | ConstSpecList IDENTIFIER SEMICOLON
+                     | ConstSpecList ConstSpec SEMICOLON
     '''
-    parsed.append(p.slice)
+    return
 
 def p_ConstSpec(p):
-    '''ConstSpec : IdentifierList
-                 | IdentifierList Type EQ Expression
-                 | IDENTIFIER Type EQ Expression
-                 | IdentifierList Type EQ ExpressionList
-                 | IDENTIFIER Type EQ ExpressionList
-
-                 | IdentifierList IDENTIFIER DOT IDENTIFIER EQ Expression
-                 | IDENTIFIER IDENTIFIER DOT IDENTIFIER EQ Expression
-                 | IdentifierList IDENTIFIER DOT IDENTIFIER EQ ExpressionList
-                 | IDENTIFIER IDENTIFIER DOT IDENTIFIER EQ ExpressionList
-
-                 | IdentifierList IDENTIFIER EQ Expression
-                 | IDENTIFIER IDENTIFIER EQ Expression
-                 | IdentifierList IDENTIFIER EQ ExpressionList
-                 | IDENTIFIER IDENTIFIER EQ ExpressionList
-                 | IdentifierList EQ Expression
+    '''ConstSpec : IDENTIFIER
+                 | IdentifierList
                  | IDENTIFIER EQ Expression
                  | IdentifierList EQ ExpressionList
-                 | IDENTIFIER EQ ExpressionList
+                 | IDENTIFIER Type EQ Expression
+                 | IdentifierList Type EQ ExpressionList
     '''
-
-
-    parsed.append(p.slice)
+    return
 
 def p_IdentifierList(p):
     '''IdentifierList : IDENTIFIER COMMA IdentifierBotList
     '''
-    p[0] = TreeNode('IdentifierList', 0, 'INT', 0, [p[1]] + p[3].children)
+    p[0] = TreeNode('IdentifierList', 0, 'INT', 0, [p[1]] + p[3].children, p[3].TAC)
     return
 
 def p_IdentifierBotList(p):
     '''IdentifierBotList : IDENTIFIER COMMA IdentifierBotList
-                 | IDENTIFIER
+                         | IDENTIFIER
     '''
     if len(p) == 2:
-        p[0] = TreeNode('IdentifierBotList', p[1], 'INT')
-        return
+        p[0] = TreeNode('IdentifierBotList', 0, 'INT', 0, [p[1]])
     elif len(p) == 4:
-        p[0] = TreeNode('IdentifierBotList', 0, 'INT', 0, [p[1]] + p[3].children)
-        return
+        p[0] = TreeNode('IdentifierBotList', 0, 'INT', 0, [p[1]] + p[3].children, p[3].TAC)
+    return
 
 
 def p_ExpressionList(p):
@@ -230,248 +212,228 @@ def p_ExpressionList(p):
 
 def p_ExpressionBotList(p):
     '''ExpressionBotList : Expression COMMA ExpressionBotList
-                        | Expression
+                         | Expression
     '''
     if len(p) == 2:
         p[0] = TreeNode('ExpressionBotList', 0, 'INT', 0, [p[1]], p[1].TAC)
-        return
     elif len(p) == 4:
         p[0] = TreeNode('ExpressionBotList', 0, 'INT', 0, [p[1]] + p[3].children, p[1].TAC)
         p[0].TAC.append_TAC(p[3].TAC)
-        return
+    return
 
 def p_TypeDecl(p):
     '''TypeDecl : TYPE TypeSpecTopList
     '''
-    parsed.append(p.slice)
+    return
 
 def p_TypeSpecTopList(p):
     '''TypeSpecTopList : TypeSpec
-                 | LROUND TypeSpecList  RROUND
+                       | LROUND TypeSpecList RROUND
     '''
-    parsed.append(p.slice)
+    return
 
 def p_TypeSpecList(p):
     '''TypeSpecList : empty
-                 | TypeSpecList TypeSpec SEMICOLON
+                    | TypeSpecList TypeSpec SEMICOLON
     '''
-    parsed.append(p.slice)
+    return
 
 def p_TypeSpec(p):
     '''TypeSpec : AliasDecl
-                 | TypeDef
+                | TypeDef
     '''
-    parsed.append(p.slice)
+    return
 
 def p_AliasDecl(p):
     '''AliasDecl : IDENTIFIER EQ Type
-                 | IDENTIFIER EQ IDENTIFIER DOT IDENTIFIER
-                 | IDENTIFIER EQ IDENTIFIER
     '''
-    parsed.append(p.slice)
+    return
 
 def p_TypeDef(p):
     '''TypeDef : IDENTIFIER Type
-                 | IDENTIFIER IDENTIFIER
-                 | IDENTIFIER IDENTIFIER DOT IDENTIFIER
     '''
-    parsed.append(p.slice)
+    return
 
 def p_Type(p):
-    '''Type :  TypeLit
-                 | LROUND IDENTIFIER RROUND
-                 | LROUND Type RROUND
-                 | LROUND IDENTIFIER DOT IDENTIFIER RROUND
+    '''Type : TypeLit
+            | StandardTypes
+            | LROUND Type RROUND
     '''
-    parsed.append(p.slice)
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        p[0] = p[2]
+    p[0].name = 'Type'
+    return
+
+def p_StandardTypes(p):
+    '''StandardTypes : PREDEFINED_TYPES
+    '''
+    p[0] = TreeNode('StandardTypes', p[1], 'NONE')
+    return
 
 def p_TypeLit(p):
     '''TypeLit : ArrayType
-                 | StructType
-                 | FunctionType
+               | StructType
+               | FunctionType
+               | PointerType
     '''
-    parsed.append(p.slice)
+    p[0] = p[1]
+    p[0].name = 'TypeLit'
+    return
+
+def p_PointerType(p):
+    '''PointerType : STAR Type
+    '''
+    return
 
 def p_ArrayType(p):
     '''ArrayType : LSQUARE ArrayLength RSQUARE Type
-                 | LSQUARE ArrayLength RSQUARE IDENTIFIER
-                 | LSQUARE ArrayLength RSQUARE IDENTIFIER DOT IDENTIFIER
     '''
-    parsed.append(p.slice)
+    return
 
 def p_ArrayLength(p):
     '''ArrayLength : Expression
     '''
-    parsed.append(p.slice)
+    return
 
 def p_StructType(p):
-    '''StructType : STRUCT LCURLY ScopeStart FieldDeclList ScopeEnd RCURLY
+    '''StructType : STRUCT LCURLY FieldDeclList RCURLY
     '''
-    parsed.append(p.slice)
+    return
 
 def p_FieldDeclList(p):
     '''FieldDeclList : empty
-                 | FieldDeclList FieldDecl SEMICOLON
+                     | FieldDeclList FieldDecl SEMICOLON
     '''
-    parsed.append(p.slice)
+    return
 
 def p_FieldDecl(p):
     '''FieldDecl : IdentifierList Type TagTop
-                 | IdentifierList IDENTIFIER TagTop
-                 | IDENTIFIER IDENTIFIER
-                 | IdentifierList IDENTIFIER DOT IDENTIFIER TagTop
-                 | STAR IDENTIFIER DOT IDENTIFIER TagTop
-                 | IDENTIFIER DOT IDENTIFIER TagTop
-                 | STAR IDENTIFIER TagTop
-                 | IDENTIFIER TagTop
+                 | IDENTIFIER Type TagTop
     '''
-    parsed.append(p.slice)
+    return
 
 def p_TagTop(p):
     '''TagTop : empty
-                 | Tag
+              | Tag
     '''
-    parsed.append(p.slice)
+    return
 
 def p_Tag(p):
     '''Tag : string_lit
     '''
-    parsed.append(p.slice)
+    return
 
 def p_FunctionType(p):
     '''FunctionType : FUNC Signature
     '''
-    parsed.append(p.slice)
-
-# Signature      = Parameters [ Result ] .
-# Result         = Parameters | Type .
-# Parameters     = "(" [ ParameterList [ "," ] ] ")" .
-# ParameterList  = ParameterDecl { "," ParameterDecl } .
-# ParameterDecl  = [ IdentifierList ] [ "..." ] Type .
+    return
 
 def p_Signature(p):
     '''Signature : Parameters
                  | Parameters Result
     '''
-    parsed.append(p.slice)
+    return
 
 def p_Result(p):
     '''Result : Parameters
-                 | Type
-                 | IDENTIFIER
-                 | IDENTIFIER DOT IDENTIFIER
+              | Type
     '''
-    parsed.append(p.slice)
+    return
 
 def p_Parameters(p):
     '''Parameters : LROUND RROUND
-                 | LROUND ParameterList RROUND
-                 | LROUND ParameterList COMMA RROUND
-
+                  | LROUND ParameterList RROUND
     '''
-    parsed.append(p.slice)
+    return
 
 def p_ParameterList(p):
-    '''ParameterList  : ParameterDecl
-                 | ParameterList COMMA ParameterDecl
-
+    '''ParameterList : ParameterDecl
+                     | ParameterList COMMA ParameterDecl
     '''
-    parsed.append(p.slice)
+    return
 
 def p_ParameterDecl(p):
-    '''ParameterDecl  : DDD Type
-                 | IdentifierList Type
-                 | IdentifierList DDD Type
-                 | IDENTIFIER Type
-                 | IDENTIFIER DDD Type
-                 | DDD IDENTIFIER
-                 | IdentifierList IDENTIFIER
-                 | IdentifierList DDD IDENTIFIER
-                 | IDENTIFIER IDENTIFIER
-                 | IDENTIFIER DDD IDENTIFIER
-                 | DDD IDENTIFIER DOT IDENTIFIER
-                 | IdentifierList IDENTIFIER DOT IDENTIFIER
-                 | IdentifierList DDD IDENTIFIER DOT IDENTIFIER
-                 | IDENTIFIER IDENTIFIER DOT IDENTIFIER
-                 | IDENTIFIER DDD IDENTIFIER DOT IDENTIFIER
+    '''ParameterDecl : IdentifierList Type
+                     | IDENTIFIER Type
+                     | Type
     '''
-    parsed.append(p.slice)
+    return
 
 def p_VarDecl(p):
     '''VarDecl : VAR VarSpecTopList
     '''
-
-    p[0] = p[1]
+    p[0] = p[2]
     p[0].name = 'VarDecl'
     return
-    parsed.append(p.slice)
 
 def p_VarSpecTopList(p):
     '''VarSpecTopList : VarSpec
-                 | LROUND VarSpecList RROUND
+                      | LROUND VarSpecList RROUND
     '''
-
     if len(p) == 2:
         p[0] = p[1]
-        p[0].name = 'VarSpecTopList'
     else:
         p[0] = p[2]
-        ####TODO
+    p[0].name = 'VarSpecTopList'
     return
-
 
 def p_VarSpecList(p):
     '''VarSpecList : empty
-                 | VarSpecList VarSpec SEMICOLON
+                   | VarSpecList VarSpec SEMICOLON
     '''
-
-
-    parsed.append(p.slice)
+    return
 
 def p_VarSpec(p):
-    '''VarSpec : IdentifierList Type VarSpecMid
-                | IDENTIFIER Type VarSpecMid
-
-                | IdentifierList IDENTIFIER VarSpecMid
-                | IDENTIFIER IDENTIFIER VarSpecMid
-
-                | IdentifierList IDENTIFIER DOT IDENTIFIER VarSpecMid
-                | IDENTIFIER IDENTIFIER DOT IDENTIFIER VarSpecMid
-
-                | IdentifierList EQ ExpressionList
-                | IDENTIFIER EQ ExpressionList
-                | IdentifierList EQ Expression
-                | IDENTIFIER EQ Expression
+    '''VarSpec : IDENTIFIER Type
+               | IDENTIFIER EQ Expression
+               | IDENTIFIER Type EQ Expression
+               | IdentifierList Type
+               | IdentifierList EQ ExpressionList
+               | IdentifierList Type EQ ExpressionList
     '''
+    # Insert into symbol table
+    p[0] = TreeNode('VarSpec', 0, 'NONE')
+    if hasattr(p[1], 'name') and  p[1].name == 'IdentifierList':
+        zero_val = TreeNode('decimal_lit', 0, 'INT')
+        l1 = len(p[1].children)
+        if len(p) == 3:
+            expr_list = TreeNode('Expr_List', 0, 'NONE', 0, [zero_val] * l1)
+        elif len(p) == 4:
+            expr_list = p[3]
+        elif len(p) == 5:
+            expr_list = p[4]
+        l2 = len(expr_list.children)
+        p[0].TAC.append_TAC(expr_list.TAC)
+        p[0].TAC.append_TAC(p[1].TAC)
+        if l1 == l2:
+            for i in range(l1):
+                p[0].TAC.add_line(['=', p[1].children[i], expr_list.children[i].data, ''])
+        else:
+            print "*** Error: Variable Declaration mismatch:", l1, "identifier(s) but", l2, "value(s)! ***"
 
-    # if len(p) == 4:
-    #     if p[2].type == 'IDENTIFIER':
-    #         #TODO
-    #     else if p[2].type == 'EQ':
-    #         #TODO
-    #     else:
-    #         if p[1].type == 'IDENTIFIER':
-
-    #         else:
-    #             #TODO
-    # else:
-    #     #TODO
-    parsed.append(p.slice)
-
-def p_VarSpecMid(p):
-    '''VarSpecMid : empty
-                 | EQ ExpressionList
-                 | EQ Expression
-    '''
-    parsed.append(p.slice)
+    else:
+        if len(p) == 3:
+            expr = TreeNode('Expr_List', 0, 'NONE')
+        elif len(p) == 4:
+            expr = p[3]
+        elif len(p) == 5:
+            expr = p[4]
+        p[0].TAC.add_line(['=', p[1], expr.data, ''])
+    return
 
 def p_FunctionDecl(p):
     '''FunctionDecl : FUNC FunctionName Signature
-                | FUNC FunctionName Signature FunctionBody
+                    | FUNC FunctionName Signature FunctionBody
     '''
     p[0] = TreeNode('FunctionDecl', 0, 'INT')
-    p[0].TAC.add_line(['func', p[2].data, '', ''])
-    p[0].TAC.append_TAC(p[4].TAC)
+    if len(p) == 5:
+        p[0].TAC.add_line(['func', p[2].data, '', ''])
+        p[0].TAC.append_TAC(p[4].TAC)
+    else:
+        p[0]
+
     return
 
 def p_FunctionName(p):
@@ -489,23 +451,17 @@ def p_FunctionBody(p):
 
 def p_SimpleStmt(p):
     '''SimpleStmt : Expression
-                 | Assignment
-                 | ShortVarDecl
-                 | IncDecStmt
+                  | Assignment
+                  | ShortVarDecl
+                  | IncDecStmt
     '''
     p[0] = p[1]
     p[0].name = 'SimpleStmt'
     return
-    # parsed.append(p.slice)
-
-# def p_ExpressionStmt(p):
-#     '''ExpressionStmt : Expression
-#     '''
-#     parsed.append(p.slice)
 
 def p_IncDecStmt(p):
     '''IncDecStmt : Expression PLUS_PLUS
-                | Expression MINUS_MINUS
+                  | Expression MINUS_MINUS
     '''
     one_val = TreeNode('decimal_lit', 1, 'INT')
     p[0] = p[1]
@@ -521,7 +477,7 @@ def p_IncDecStmt(p):
 
 def p_ShortVarDecl(p):
     '''ShortVarDecl : ExpressionList ASSIGN_OP ExpressionList
-                 | Expression ASSIGN_OP Expression
+                    | Expression ASSIGN_OP Expression
     '''
     # TODO: Add in symbol table
     p[0] = TreeNode('ShortVarDecl', 0, 'INT')
@@ -534,6 +490,7 @@ def p_ShortVarDecl(p):
             for i in range(l1):
                 if p[1].children[i].isLvalue == 0:
                     print "*** Error: Lvalue required! ***"
+
                 else:
                     if SymbolTable.search_node(p[1].children[i].data) == 0:
                         node = symboltable_node()
@@ -541,13 +498,14 @@ def p_ShortVarDecl(p):
                         node.type = 'INT'
                         SymbolTable.add_node(node)
                     p[0].TAC.add_line([p[2], p[1].children[i].data, p[3].children[i].data, ''])
+
         else:
             print "*** Error: Assignment mismatch:", l1, "identifier(s) but", l2, "value(s)! ***"
 
     elif p[1].name == 'Expression':
         if p[1].isLvalue == 0:
             print "*** Error: Lvalue required! ***"
-            return
+
         else:
             p[0].TAC.append_TAC(p[3].TAC)
             p[0].TAC.append_TAC(p[1].TAC)
@@ -557,11 +515,12 @@ def p_ShortVarDecl(p):
                 node.name = p[1].data
                 node.type = 'INT'
                 SymbolTable.add_node(node)
-            return
+
+    return
 
 def p_Assignment(p):
     '''Assignment : ExpressionList assign_op ExpressionList
-                | Expression assign_op Expression
+                  | Expression assign_op Expression
     '''
     p[0] = TreeNode('Assignment', 0, 'INT')
     if p[1].name == 'ExpressionList':
@@ -629,7 +588,7 @@ def p_assign_op(p):
 
 def p_IfStmt(p):
     '''IfStmt : IF Expression Block
-            | IF Expression Block ELSE elseTail
+              | IF Expression Block ELSE elseTail
     '''
     if len(p) == 4:
         l1 = label_gen()
@@ -637,7 +596,7 @@ def p_IfStmt(p):
         p[0].TAC.append_TAC(p[2].TAC)
         p[0].TAC.add_line(['ifgotoeq', p[2].data, 0, l1])
         p[0].TAC.append_TAC(p[3].TAC)
-        p[0].TAC.add_line([l1])
+        p[0].TAC.add_line([l1, '', '', ''])
     if len(p) == 6:
         l1 = label_gen()
         l2 = label_gen()
@@ -645,15 +604,15 @@ def p_IfStmt(p):
         p[0].TAC.append_TAC(p[2].TAC)
         p[0].TAC.add_line(['ifgotoeq', p[2].data, 0, l1])
         p[0].TAC.append_TAC(p[3].TAC)
-        p[0].TAC.add_line(['goto', l2])
-        p[0].TAC.add_line([l1])
+        p[0].TAC.add_line(['goto', l2, '', ''])
+        p[0].TAC.add_line([l1, '', '', ''])
         p[0].TAC.append_TAC(p[5].TAC)
-        p[0].TAC.add_line([l2])
+        p[0].TAC.add_line([l2, '', '', ''])
     return
 
 def p_elseTail(p):
     '''elseTail : IfStmt
-                 | Block
+                | Block
     '''
     p[0] = p[1]
     p[0].name = 'elseTail'
@@ -667,9 +626,9 @@ def p_SwitchStmt(p):
 
 def p_ExprSwitchStmt(p):
     '''ExprSwitchStmt : SWITCH SimpleStmt SEMICOLON LCURLY ScopeStart ExprCaseClauseList ScopeEnd RCURLY
-                 | SWITCH SimpleStmt SEMICOLON Expression LCURLY ScopeStart ExprCaseClauseList ScopeEnd RCURLY
-                 | SWITCH LCURLY ScopeStart ExprCaseClauseList ScopeEnd RCURLY
-                 | SWITCH Expression LCURLY ScopeStart ExprCaseClauseList ScopeEnd RCURLY
+                      | SWITCH SimpleStmt SEMICOLON Expression LCURLY ScopeStart ExprCaseClauseList ScopeEnd RCURLY
+                      | SWITCH LCURLY ScopeStart ExprCaseClauseList ScopeEnd RCURLY
+                      | SWITCH Expression LCURLY ScopeStart ExprCaseClauseList ScopeEnd RCURLY
     '''
     if len(p) == 8:
         l1 = label_gen()
@@ -685,12 +644,12 @@ def p_ExprSwitchStmt(p):
             if i in p[5].TAC.leaders[1:]:
                 p[0].TAC.add_line(['goto', l2, '', ''])
             p[0].TAC.add_line(p[5].TAC.code[i])
-        p[0].TAC.add_line([l2])
+        p[0].TAC.add_line([l2, '', '', ''])
     return
 
 def p_ExprCaseClauseList(p):
     '''ExprCaseClauseList : empty
-                 | ExprCaseClauseList ExprCaseClause
+                          | ExprCaseClauseList ExprCaseClause
     '''
     TAC1 = ThreeAddressCode()
     TAC2 = ThreeAddressCode()
@@ -706,7 +665,6 @@ def p_ExprCaseClauseList(p):
         p[0] = TreeNode('ExprCaseClauseList', TAC1, 'INT')
 
     return
-    # parsed.append(p.slice)
 
 def p_ExprCaseClause(p):
     '''ExprCaseClause : ExprSwitchCase COLON StatementList
@@ -714,101 +672,93 @@ def p_ExprCaseClause(p):
     l1 = label_gen()
     p[0] = TreeNode('ExprCaseClause', 0, 'INT')
     # p[0].TAC.append_TAC(p[1].TAC)
-    p[0].TAC.add_line([l1])
+    p[0].TAC.add_line([l1, '', '', ''])
     # p[0].TAC.add_line(['ifgotoneq', p[1].children, p[1].children, l1])
     p[0].TAC.append_TAC(p[3].TAC)
     p[0].children = [[p[1].data,l1]]
     p[0].data = p[1].TAC
+
     return
-    # parsed.append(p.slice)
 
 def p_ExprSwitchCase(p):
     '''ExprSwitchCase : CASE ExpressionList
-                 | DEFAULT
-                 | CASE Expression
+                      | DEFAULT
+                      | CASE Expression
     '''
     p[0] = TreeNode('ExprSwitchCase', 0, 'INT')
     if len(p) == 3:
         p[0].data = p[2].data
         p[0].TAC = p[2].TAC
 
-    parsed.append(p.slice)
+    return
 
 def p_ForStmt(p):
     '''ForStmt : FOR Expression Block
-                 | FOR Block
+               | FOR Block
     '''
     p[0] = TreeNode('ForStmt', 0, 'INT')
     if len(p) == 4:
         l1 = label_gen()
         l2 = label_gen()
-        p[0].TAC.add_line([l1])
+        p[0].TAC.add_line([l1, '', '', ''])
         p[0].TAC.append_TAC(p[2].TAC)
         p[0].TAC.add_line(['ifgotoeq', p[2].data, 0, l2])
         p[0].TAC.append_TAC(p[3].TAC)
-        p[0].TAC.add_line(['goto', l1])
-        p[0].TAC.add_line([l2])
+        p[0].TAC.add_line(['goto', l1, '', ''])
+        p[0].TAC.add_line([l2, '', '', ''])
 
     if len(p) == 3:
         l1 = label_gen()
         # l2 = label_gen()
-        p[0].TAC.add_line([l1])
+        p[0].TAC.add_line([l1, '', '', ''])
         p[0].TAC.append_TAC(p[2].TAC)
-        p[0].TAC.add_line(['goto', l1])
+        p[0].TAC.add_line(['goto', l1, '', ''])
         # p[0].TAC.add_line([l2])
     return
 
-
-
-
-
-
 def p_ReturnStmt(p):
     '''ReturnStmt : RETURN
-                 | RETURN Expression
-                 | RETURN ExpressionList
+                  | RETURN Expression
+                  | RETURN ExpressionList
     '''
-    parsed.append(p.slice)
+    return
 
 def p_BreakStmt(p):
     '''BreakStmt : BREAK IDENTIFIER
     '''
-    parsed.append(p.slice)
+    return
 
 def p_ContinueStmt(p):
     '''ContinueStmt : CONTINUE IDENTIFIER
     '''
-    parsed.append(p.slice)
+    return
 
 def p_GotoStmt(p):
     '''GotoStmt : GOTO IDENTIFIER
     '''
-    parsed.append(p.slice)
-
-
-
+    return
 
 def p_Expression(p):
     '''Expression : UnaryExpr
-                 | Expression OR_OR Expression
-                 | Expression AMP_AMP Expression
-                 | Expression EQ_EQ Expression
-                 | Expression NOT_EQ Expression
-                 | Expression LT Expression
-                 | Expression LT_EQ Expression
-                 | Expression GT Expression
-                 | Expression GT_EQ Expression
-                 | Expression PLUS Expression
-                 | Expression MINUS Expression
-                 | Expression OR Expression
-                 | Expression CARET Expression
-                 | Expression STAR Expression
-                 | Expression DIVIDE Expression
-                 | Expression MODULO Expression
-                 | Expression LS Expression
-                 | Expression RS Expression
-                 | Expression AMP Expression
-                 | Expression AND_OR Expression
+                  | Expression OR_OR Expression
+                  | Expression AMP_AMP Expression
+                  | Expression EQ_EQ Expression
+                  | Expression NOT_EQ Expression
+                  | Expression LT Expression
+                  | Expression LT_EQ Expression
+                  | Expression GT Expression
+                  | Expression GT_EQ Expression
+                  | Expression PLUS Expression
+                  | Expression MINUS Expression
+                  | Expression OR Expression
+                  | Expression CARET Expression
+                  | Expression STAR Expression
+                  | Expression DIVIDE Expression
+                  | Expression MODULO Expression
+                  | Expression LS Expression
+                  | Expression RS Expression
+                  | Expression AMP Expression
+                  | Expression AND_OR Expression
     '''
     if len(p) == 2:
         p[0] = p[1]
@@ -833,22 +783,22 @@ def p_UnaryExpr(p):
 
 def p_unary_op(p):
     '''unary_op : PLUS
-                 | MINUS
-                 | NOT
-                 | CARET
-                 | STAR
-                 | AMP
-                 | LT_MINUS
+                | MINUS
+                | NOT
+                | CARET
+                | STAR
+                | AMP
+                | LT_MINUS
     '''
     p[0] = TreeNode('unary_op', p[1], 'OPERATOR')
     return
 
 def p_PrimaryExpr(p):
     '''PrimaryExpr : Operand
-                 | IDENTIFIER
-                 | PrimaryExpr Selector
-                 | PrimaryExpr Index
-                 | PrimaryExpr Arguments
+                   | IDENTIFIER
+                   | PrimaryExpr Selector
+                   | PrimaryExpr Index
+                   | PrimaryExpr Arguments
     '''
     if len(p) == 2:
         if p.slice[1].type == 'IDENTIFIER':
@@ -864,7 +814,7 @@ def p_PrimaryExpr(p):
 
 def p_Operand(p):
     '''Operand  : Literal
-                 | LROUND Expression RROUND
+                | LROUND Expression RROUND
     '''
     if len(p) == 2:
         p[0] = p[1]
@@ -875,7 +825,7 @@ def p_Operand(p):
 
 def p_Literal(p):
     '''Literal  : BasicLit
-                 | FunctionLit
+                | FunctionLit
     '''
     p[0] = p[1]
     p[0].name = 'Literal'
@@ -883,9 +833,9 @@ def p_Literal(p):
 
 def p_BasicLit(p):
     '''BasicLit : int_lit
-                 | float_lit
-                 | string_lit
-                 | rune_lit
+                | float_lit
+                | string_lit
+                | rune_lit
     '''
     p[0] = p[1]
     p[0].name = 'BasicLit'
@@ -893,8 +843,8 @@ def p_BasicLit(p):
 
 def p_int_lit(p):
     '''int_lit : decimal_lit
-                 | octal_lit
-                 | hex_lit
+               | octal_lit
+               | hex_lit
     '''
     p[0] = p[1]
     p[0].name = 'int_lit'
@@ -934,74 +884,24 @@ def p_FunctionLit(p):
 def p_Selector(p):
     '''Selector : DOT IDENTIFIER
     '''
-    parsed.append(p.slice)
+    return
 
 def p_Index(p):
     '''Index : LSQUARE Expression RSQUARE
     '''
-    parsed.append(p.slice)
+    return
 
 def p_Arguments(p):
     '''Arguments : LROUND RROUND
-                 | LROUND ExpressionList DDD RROUND
-                 | LROUND Expression DDD RROUND
                  | LROUND ExpressionList RROUND
                  | LROUND Expression RROUND
-                 | LROUND Type DDD RROUND
                  | LROUND Type RROUND
-                 | LROUND Type COMMA ExpressionList  DDD RROUND
-                 | LROUND Type COMMA ExpressionList  RROUND
-                 | LROUND Type COMMA Expression DDD RROUND
+                 | LROUND Type COMMA ExpressionList RROUND
                  | LROUND Type COMMA Expression RROUND
-                 | LROUND IDENTIFIER DDD RROUND
-                 | LROUND IDENTIFIER RROUND %prec LROUND
-                 | LROUND IDENTIFIER COMMA ExpressionList  DDD RROUND
-                 | LROUND IDENTIFIER COMMA ExpressionList  RROUND
-                 | LROUND IDENTIFIER COMMA Expression DDD RROUND
-                 | LROUND IDENTIFIER COMMA Expression RROUND
-                 | LROUND IDENTIFIER DOT IDENTIFIER DDD RROUND
-                 | LROUND IDENTIFIER DOT IDENTIFIER RROUND
-                 | LROUND IDENTIFIER DOT IDENTIFIER COMMA ExpressionList  DDD RROUND
-                 | LROUND IDENTIFIER DOT IDENTIFIER COMMA ExpressionList  RROUND
-                 | LROUND IDENTIFIER DOT IDENTIFIER COMMA Expression DDD RROUND
-                 | LROUND IDENTIFIER DOT IDENTIFIER COMMA Expression RROUND
-                 | LROUND ExpressionList DDD COMMA RROUND
-                 | LROUND Expression DDD COMMA RROUND
-                 | LROUND ExpressionList COMMA RROUND
-                 | LROUND Expression COMMA RROUND
-                 | LROUND Type DDD COMMA RROUND
-                 | LROUND Type COMMA RROUND
-                 | LROUND Type COMMA ExpressionList  DDD COMMA RROUND
-                 | LROUND Type COMMA ExpressionList  COMMA RROUND
-                 | LROUND Type COMMA Expression DDD COMMA RROUND
-                 | LROUND Type COMMA Expression COMMA RROUND
-                 | LROUND IDENTIFIER DDD COMMA RROUND
-                 | LROUND IDENTIFIER COMMA RROUND
-                 | LROUND IDENTIFIER COMMA ExpressionList  DDD COMMA RROUND
-                 | LROUND IDENTIFIER COMMA ExpressionList  COMMA RROUND
-                 | LROUND IDENTIFIER COMMA Expression DDD COMMA RROUND
-                 | LROUND IDENTIFIER COMMA Expression COMMA RROUND
-                 | LROUND IDENTIFIER DOT IDENTIFIER DDD COMMA RROUND
-                 | LROUND IDENTIFIER DOT IDENTIFIER COMMA RROUND
-                 | LROUND IDENTIFIER DOT IDENTIFIER COMMA ExpressionList  DDD COMMA RROUND
-                 | LROUND IDENTIFIER DOT IDENTIFIER COMMA ExpressionList  COMMA RROUND
-                 | LROUND IDENTIFIER DOT IDENTIFIER COMMA Expression DDD COMMA RROUND
-                 | LROUND IDENTIFIER DOT IDENTIFIER COMMA Expression COMMA RROUND
     '''
     if len(p) == 3:
         p[0] = TreeNode('Arguments', 0, 'INT')
     return
-
-def p_error(p):
-    print p
-    if p == None:
-        print str(sys.argv[1]) + " :: You missed something at the end"
-    else:
-        print str(sys.argv[1]) + " :: Syntax error in line no " +  str(p.lineno)
-
-def p_empty(p):
-    'empty :'
-    pass
 
 def p_string_lit(p):
     '''string_lit : STRING_LIT
@@ -1015,6 +915,17 @@ def p_rune_lit(p):
     p[0] = TreeNode('rune_lit', p[1], 'RUNE')
     return
 
+def p_empty(p):
+    'empty :'
+    pass
+
+def p_error(p):
+    print p
+    if p == None:
+        print str(sys.argv[1]) + " :: You missed something at the end"
+    else:
+        print str(sys.argv[1]) + " :: Syntax error in line no " +  str(p.lineno)
+
 # Standard Logger
 logging.basicConfig(
     level = logging.DEBUG,
@@ -1026,13 +937,18 @@ logging.basicConfig(
 log = logging.getLogger()
 
 yacc.yacc(debug=True, debuglog=log)
-filename = sys.argv[1]
 
-inp = open(filename, 'r')
-inp = inp.read()
-inp += "\n"
+input_file = sys.argv[1]
 
-yacc.parse(inp, debug=log)
+import os
+if os.path.isfile(input_file) is False:
+    print('Input file ' + input_file + ' does not exist')
+    sys.exit(1)
 
-# ThreeAddrCode.print_code()
+input_code = open(input_file, 'r').read()
+
+if input_code[len(input_code)-1] != '\n':
+    input_code += '\n'
+
+yacc.parse(input_code, debug=log, tracking=True)
 
