@@ -5,8 +5,8 @@ from lexer import tokens
 
 from code import TreeNode
 from code import ThreeAddressCode
-from symboltable import SymbolTable
-from symboltable import symboltable_node
+from symbol_table import SymbolTable
+from symbol_table import symboltable_node
 import sys
 from random import *
 import logging
@@ -813,7 +813,8 @@ def p_Expression(p):
     if len(p) == 2:
         p[0] = p[1]
     elif len(p) == 4:
-        p[0] = TreeNode('IDENTIFIER', temp_gen(), 'INT', 1, [])
+        p[0] = TreeNode('IDENTIFIER', temp_gen(), 'INT', 1, [], p[1].TAC)
+        p[0].TAC.append_TAC(p[3].TAC)
         p[0].TAC.add_line([p[2], p[0].data, p[1].data, p[3].data])
     p[0].name = 'Expression'
     return
