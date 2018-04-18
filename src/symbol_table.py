@@ -28,14 +28,14 @@ class SymbolTable:
         """Initializes the SymbolTable"""
         self.symbol_table = []
         # self.symbol_table = {
-            # 'main': {
-                # 'name': 'main',
-                # 'type': 'main',
+            # 'global': {
+                # 'name': 'global',
+                # 'type': 'global',
                 # 'parent': None,
                 # 'identifiers': {}
             # }
         # }
-        self.current_scope = 'main'
+        self.current_scope = 'global'
 
     def start_scope(self, scope):
         """Starts a scope"""

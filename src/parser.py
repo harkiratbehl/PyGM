@@ -13,6 +13,7 @@ import logging
 
 ThreeAddrCode = ThreeAddressCode()
 SymbolTable = SymbolTable()
+parsed = []
 
 def temp_gen():
     i = randint(0, sys.maxint)
@@ -57,6 +58,7 @@ precedence = (
 def p_SourceFile(p):
     '''SourceFile : PACKAGE IDENTIFIER  SEMICOLON ImportDeclList TopLevelDeclList
     '''
+    parsed.append(p.slice)
     # TODO: Ignoring package name and Imports for now
     p[0] = p[5]
     p[0].TAC.print_code()
@@ -67,6 +69,7 @@ def p_ImportDeclList(p):
     '''ImportDeclList : ImportDecl SEMICOLON ImportDeclList
                 | empty
     '''
+    parsed.append(p.slice)
     # TODO: Ignoring Imports for now
     return
 
@@ -74,6 +77,7 @@ def p_TopLevelDeclList(p):
     '''TopLevelDeclList : TopLevelDecl SEMICOLON TopLevelDeclList
                         | empty
     '''
+    parsed.append(p.slice)
     if len(p) == 4:
         if p[3] != None:
             p[0] = TreeNode('TopLevelDeclList', 0, 'INT', 0, [p[1]] + p[3].children, p[1].TAC)
@@ -86,6 +90,7 @@ def p_TopLevelDecl(p):
     '''TopLevelDecl  : Declaration
                     | FunctionDecl
     '''
+    parsed.append(p.slice)
     p[0] = p[1]
     return
 
@@ -93,6 +98,7 @@ def p_ImportDecl(p):
     '''ImportDecl : IMPORT LROUND ImportSpecList RROUND
                     | IMPORT ImportSpec
     '''
+    parsed.append(p.slice)
     # TODO: Ignoring Imports for now
     return
 
@@ -100,6 +106,7 @@ def p_ImportSpecList(p):
     '''ImportSpecList : ImportSpec SEMICOLON ImportSpecList
                         | empty
     '''
+    parsed.append(p.slice)
     # TODO: Ignoring Imports for now
     return
 
@@ -108,12 +115,14 @@ def p_ImportSpec(p):
                     | IDENTIFIER string_lit
                     | empty string_lit
     '''
+    parsed.append(p.slice)
     # TODO: Ignoring Imports for now
     return
 
 def p_Block(p):
     '''Block : LCURLY ScopeStart StatementList ScopeEnd RCURLY
     '''
+    parsed.append(p.slice)
     p[0] = p[3]
     p[0].name = 'Block'
     return
@@ -121,17 +130,20 @@ def p_Block(p):
 def p_ScopeStart(p):
     '''ScopeStart : empty
     '''
+    parsed.append(p.slice)
     return
 
 def p_ScopeEnd(p):
     '''ScopeEnd : empty
     '''
+    parsed.append(p.slice)
     return
 
 def p_StatementList(p):
     '''StatementList : Statement SEMICOLON StatementList
                     | empty
     '''
+    parsed.append(p.slice)
     if len(p) == 4:
         p[0] = TreeNode('StatementList', 0, 'INT', 0, [p[1].data] + p[3].children, p[1].TAC)
         p[0].TAC.append_TAC(p[3].TAC)
@@ -151,6 +163,7 @@ def p_Statement(p):
                  | ContinueStmt
                  | GotoStmt
     '''
+    parsed.append(p.slice)
     p[0] = p[1]
     p[0].name = 'Statement'
     return
@@ -160,6 +173,7 @@ def p_Declaration(p):
                    | TypeDecl
                    | VarDecl
     '''
+    parsed.append(p.slice)
     p[0] = p[1]
     p[0].name = 'Declaration'
     return
@@ -168,12 +182,14 @@ def p_ConstDecl(p):
     '''ConstDecl : CONST LROUND ConstSpecList RROUND
                  | CONST ConstSpec
     '''
+    parsed.append(p.slice)
     return
 
 def p_ConstSpecList(p):
     '''ConstSpecList : empty
                      | ConstSpecList ConstSpec SEMICOLON
     '''
+    parsed.append(p.slice)
     return
 
 def p_ConstSpec(p):
@@ -184,11 +200,13 @@ def p_ConstSpec(p):
                  | IDENTIFIER Type EQ Expression
                  | IdentifierList Type EQ ExpressionList
     '''
+    parsed.append(p.slice)
     return
 
 def p_IdentifierList(p):
     '''IdentifierList : IDENTIFIER COMMA IdentifierBotList
     '''
+    parsed.append(p.slice)
     p[0] = TreeNode('IdentifierList', 0, 'INT', 0, [p[1]] + p[3].children, p[3].TAC)
     return
 
@@ -196,6 +214,7 @@ def p_IdentifierBotList(p):
     '''IdentifierBotList : IDENTIFIER COMMA IdentifierBotList
                          | IDENTIFIER
     '''
+    parsed.append(p.slice)
     if len(p) == 2:
         p[0] = TreeNode('IdentifierBotList', 0, 'INT', 0, [p[1]])
     elif len(p) == 4:
@@ -206,6 +225,7 @@ def p_IdentifierBotList(p):
 def p_ExpressionList(p):
     '''ExpressionList : Expression COMMA ExpressionBotList
     '''
+    parsed.append(p.slice)
     p[0] = TreeNode('ExpressionList', 0, 'INT', 0, [p[1]] + p[3].children, p[1].TAC)
     p[0].TAC.append_TAC(p[3].TAC)
     return
@@ -214,6 +234,7 @@ def p_ExpressionBotList(p):
     '''ExpressionBotList : Expression COMMA ExpressionBotList
                          | Expression
     '''
+    parsed.append(p.slice)
     if len(p) == 2:
         p[0] = TreeNode('ExpressionBotList', 0, 'INT', 0, [p[1]], p[1].TAC)
     elif len(p) == 4:
@@ -224,34 +245,40 @@ def p_ExpressionBotList(p):
 def p_TypeDecl(p):
     '''TypeDecl : TYPE TypeSpecTopList
     '''
+    parsed.append(p.slice)
     return
 
 def p_TypeSpecTopList(p):
     '''TypeSpecTopList : TypeSpec
                        | LROUND TypeSpecList RROUND
     '''
+    parsed.append(p.slice)
     return
 
 def p_TypeSpecList(p):
     '''TypeSpecList : empty
                     | TypeSpecList TypeSpec SEMICOLON
     '''
+    parsed.append(p.slice)
     return
 
 def p_TypeSpec(p):
     '''TypeSpec : AliasDecl
                 | TypeDef
     '''
+    parsed.append(p.slice)
     return
 
 def p_AliasDecl(p):
     '''AliasDecl : IDENTIFIER EQ Type
     '''
+    parsed.append(p.slice)
     return
 
 def p_TypeDef(p):
     '''TypeDef : IDENTIFIER Type
     '''
+    parsed.append(p.slice)
     return
 
 def p_Type(p):
@@ -259,6 +286,7 @@ def p_Type(p):
             | StandardTypes
             | LROUND Type RROUND
     '''
+    parsed.append(p.slice)
     if len(p) == 2:
         p[0] = p[1]
     else:
@@ -269,6 +297,7 @@ def p_Type(p):
 def p_StandardTypes(p):
     '''StandardTypes : PREDEFINED_TYPES
     '''
+    parsed.append(p.slice)
     p[0] = TreeNode('StandardTypes', p[1], 'NONE')
     return
 
@@ -278,6 +307,7 @@ def p_TypeLit(p):
                | FunctionType
                | PointerType
     '''
+    parsed.append(p.slice)
     p[0] = p[1]
     p[0].name = 'TypeLit'
     return
@@ -285,73 +315,86 @@ def p_TypeLit(p):
 def p_PointerType(p):
     '''PointerType : STAR Type
     '''
+    parsed.append(p.slice)
     return
 
 def p_ArrayType(p):
     '''ArrayType : LSQUARE ArrayLength RSQUARE Type
     '''
+    parsed.append(p.slice)
     return
 
 def p_ArrayLength(p):
     '''ArrayLength : Expression
     '''
+    parsed.append(p.slice)
     return
 
 def p_StructType(p):
     '''StructType : STRUCT LCURLY FieldDeclList RCURLY
     '''
+    parsed.append(p.slice)
     return
 
 def p_FieldDeclList(p):
     '''FieldDeclList : empty
                      | FieldDeclList FieldDecl SEMICOLON
     '''
+    parsed.append(p.slice)
     return
 
 def p_FieldDecl(p):
     '''FieldDecl : IdentifierList Type TagTop
                  | IDENTIFIER Type TagTop
     '''
+    parsed.append(p.slice)
     return
 
 def p_TagTop(p):
     '''TagTop : empty
               | Tag
     '''
+    parsed.append(p.slice)
     return
 
 def p_Tag(p):
     '''Tag : string_lit
     '''
+    parsed.append(p.slice)
     return
 
 def p_FunctionType(p):
     '''FunctionType : FUNC Signature
     '''
+    parsed.append(p.slice)
     return
 
 def p_Signature(p):
     '''Signature : Parameters
                  | Parameters Result
     '''
+    parsed.append(p.slice)
     return
 
 def p_Result(p):
     '''Result : Parameters
               | Type
     '''
+    parsed.append(p.slice)
     return
 
 def p_Parameters(p):
     '''Parameters : LROUND RROUND
                   | LROUND ParameterList RROUND
     '''
+    parsed.append(p.slice)
     return
 
 def p_ParameterList(p):
     '''ParameterList : ParameterDecl
                      | ParameterList COMMA ParameterDecl
     '''
+    parsed.append(p.slice)
     return
 
 def p_ParameterDecl(p):
@@ -359,11 +402,13 @@ def p_ParameterDecl(p):
                      | IDENTIFIER Type
                      | Type
     '''
+    parsed.append(p.slice)
     return
 
 def p_VarDecl(p):
     '''VarDecl : VAR VarSpecTopList
     '''
+    parsed.append(p.slice)
     p[0] = p[2]
     p[0].name = 'VarDecl'
     return
@@ -372,6 +417,7 @@ def p_VarSpecTopList(p):
     '''VarSpecTopList : VarSpec
                       | LROUND VarSpecList RROUND
     '''
+    parsed.append(p.slice)
     if len(p) == 2:
         p[0] = p[1]
     else:
@@ -383,6 +429,7 @@ def p_VarSpecList(p):
     '''VarSpecList : empty
                    | VarSpecList VarSpec SEMICOLON
     '''
+    parsed.append(p.slice)
     return
 
 def p_VarSpec(p):
@@ -393,6 +440,7 @@ def p_VarSpec(p):
                | IdentifierList EQ ExpressionList
                | IdentifierList Type EQ ExpressionList
     '''
+    parsed.append(p.slice)
     # Insert into symbol table
     p[0] = TreeNode('VarSpec', 0, 'NONE')
     if hasattr(p[1], 'name') and  p[1].name == 'IdentifierList':
@@ -427,6 +475,7 @@ def p_FunctionDecl(p):
     '''FunctionDecl : FUNC FunctionName Signature
                     | FUNC FunctionName Signature FunctionBody
     '''
+    parsed.append(p.slice)
     p[0] = TreeNode('FunctionDecl', 0, 'INT')
     if len(p) == 5:
         p[0].TAC.add_line(['func', p[2].data, '', ''])
@@ -439,12 +488,14 @@ def p_FunctionDecl(p):
 def p_FunctionName(p):
     '''FunctionName : IDENTIFIER
     '''
+    parsed.append(p.slice)
     p[0] = TreeNode('FunctionName', p[1], 'INT')
     return
 
 def p_FunctionBody(p):
     '''FunctionBody : Block
     '''
+    parsed.append(p.slice)
     p[0] = p[1]
     p[0].name = 'FunctionBody'
     return
@@ -455,6 +506,7 @@ def p_SimpleStmt(p):
                   | ShortVarDecl
                   | IncDecStmt
     '''
+    parsed.append(p.slice)
     p[0] = p[1]
     p[0].name = 'SimpleStmt'
     return
@@ -463,6 +515,7 @@ def p_IncDecStmt(p):
     '''IncDecStmt : Expression PLUS_PLUS
                   | Expression MINUS_MINUS
     '''
+    parsed.append(p.slice)
     one_val = TreeNode('decimal_lit', 1, 'INT')
     p[0] = p[1]
     if p[1].isLvalue == 1:
@@ -479,6 +532,7 @@ def p_ShortVarDecl(p):
     '''ShortVarDecl : ExpressionList ASSIGN_OP ExpressionList
                     | Expression ASSIGN_OP Expression
     '''
+    parsed.append(p.slice)
     # TODO: Add in symbol table
     p[0] = TreeNode('ShortVarDecl', 0, 'INT')
     if p[1].name == 'ExpressionList':
@@ -522,6 +576,7 @@ def p_Assignment(p):
     '''Assignment : ExpressionList assign_op ExpressionList
                   | Expression assign_op Expression
     '''
+    parsed.append(p.slice)
     p[0] = TreeNode('Assignment', 0, 'INT')
     if p[1].name == 'ExpressionList':
         l1 = len(p[1].children)
@@ -583,6 +638,7 @@ def p_assign_op(p):
                  | AMP_EQ
                  | AND_OR_EQ
     '''
+    parsed.append(p.slice)
     p[0] = TreeNode('assign_op', p[1], 'OPERATOR')
     return
 
@@ -590,13 +646,14 @@ def p_IfStmt(p):
     '''IfStmt : IF Expression Block
               | IF Expression Block ELSE elseTail
     '''
+    parsed.append(p.slice)
     if len(p) == 4:
         l1 = label_gen()
         p[0] = TreeNode('IfStmt', 0, 'INT')
         p[0].TAC.append_TAC(p[2].TAC)
         p[0].TAC.add_line(['ifgotoeq', p[2].data, 0, l1])
         p[0].TAC.append_TAC(p[3].TAC)
-        p[0].TAC.add_line([l1, '', '', ''])
+        p[0].TAC.add_line(['label', l1, '', ''])
     if len(p) == 6:
         l1 = label_gen()
         l2 = label_gen()
@@ -605,15 +662,16 @@ def p_IfStmt(p):
         p[0].TAC.add_line(['ifgotoeq', p[2].data, 0, l1])
         p[0].TAC.append_TAC(p[3].TAC)
         p[0].TAC.add_line(['goto', l2, '', ''])
-        p[0].TAC.add_line([l1, '', '', ''])
+        p[0].TAC.add_line(['label', l1, '', ''])
         p[0].TAC.append_TAC(p[5].TAC)
-        p[0].TAC.add_line([l2, '', '', ''])
+        p[0].TAC.add_line(['label', l2, '', ''])
     return
 
 def p_elseTail(p):
     '''elseTail : IfStmt
                 | Block
     '''
+    parsed.append(p.slice)
     p[0] = p[1]
     p[0].name = 'elseTail'
     return
@@ -621,6 +679,7 @@ def p_elseTail(p):
 def p_SwitchStmt(p):
     '''SwitchStmt : ExprSwitchStmt
     '''
+    parsed.append(p.slice)
     p[0] = TreeNode('SwitchStmt', 0, 'INT', 0, [], p[1].TAC)
     return
 
@@ -630,6 +689,7 @@ def p_ExprSwitchStmt(p):
                       | SWITCH LCURLY ScopeStart ExprCaseClauseList ScopeEnd RCURLY
                       | SWITCH Expression LCURLY ScopeStart ExprCaseClauseList ScopeEnd RCURLY
     '''
+    parsed.append(p.slice)
     if len(p) == 8:
         l1 = label_gen()
         l2 = label_gen()
@@ -644,13 +704,14 @@ def p_ExprSwitchStmt(p):
             if i in p[5].TAC.leaders[1:]:
                 p[0].TAC.add_line(['goto', l2, '', ''])
             p[0].TAC.add_line(p[5].TAC.code[i])
-        p[0].TAC.add_line([l2, '', '', ''])
+        p[0].TAC.add_line(['label', l2, '', ''])
     return
 
 def p_ExprCaseClauseList(p):
     '''ExprCaseClauseList : empty
                           | ExprCaseClauseList ExprCaseClause
     '''
+    parsed.append(p.slice)
     TAC1 = ThreeAddressCode()
     TAC2 = ThreeAddressCode()
     if len(p) == 3:
@@ -669,10 +730,11 @@ def p_ExprCaseClauseList(p):
 def p_ExprCaseClause(p):
     '''ExprCaseClause : ExprSwitchCase COLON StatementList
     '''
+    parsed.append(p.slice)
     l1 = label_gen()
     p[0] = TreeNode('ExprCaseClause', 0, 'INT')
     # p[0].TAC.append_TAC(p[1].TAC)
-    p[0].TAC.add_line([l1, '', '', ''])
+    p[0].TAC.add_line(['label', l1, '', ''])
     # p[0].TAC.add_line(['ifgotoneq', p[1].children, p[1].children, l1])
     p[0].TAC.append_TAC(p[3].TAC)
     p[0].children = [[p[1].data,l1]]
@@ -685,6 +747,7 @@ def p_ExprSwitchCase(p):
                       | DEFAULT
                       | CASE Expression
     '''
+    parsed.append(p.slice)
     p[0] = TreeNode('ExprSwitchCase', 0, 'INT')
     if len(p) == 3:
         p[0].data = p[2].data
@@ -696,21 +759,22 @@ def p_ForStmt(p):
     '''ForStmt : FOR Expression Block
                | FOR Block
     '''
+    parsed.append(p.slice)
     p[0] = TreeNode('ForStmt', 0, 'INT')
     if len(p) == 4:
         l1 = label_gen()
         l2 = label_gen()
-        p[0].TAC.add_line([l1, '', '', ''])
+        p[0].TAC.add_line(['label', l1, '', ''])
         p[0].TAC.append_TAC(p[2].TAC)
         p[0].TAC.add_line(['ifgotoeq', p[2].data, 0, l2])
         p[0].TAC.append_TAC(p[3].TAC)
         p[0].TAC.add_line(['goto', l1, '', ''])
-        p[0].TAC.add_line([l2, '', '', ''])
+        p[0].TAC.add_line(['label', l2, '', ''])
 
     if len(p) == 3:
         l1 = label_gen()
         # l2 = label_gen()
-        p[0].TAC.add_line([l1, '', '', ''])
+        p[0].TAC.add_line(['label', l1, '', ''])
         p[0].TAC.append_TAC(p[2].TAC)
         p[0].TAC.add_line(['goto', l1, '', ''])
         # p[0].TAC.add_line([l2])
@@ -721,21 +785,25 @@ def p_ReturnStmt(p):
                   | RETURN Expression
                   | RETURN ExpressionList
     '''
+    parsed.append(p.slice)
     return
 
 def p_BreakStmt(p):
     '''BreakStmt : BREAK IDENTIFIER
     '''
+    parsed.append(p.slice)
     return
 
 def p_ContinueStmt(p):
     '''ContinueStmt : CONTINUE IDENTIFIER
     '''
+    parsed.append(p.slice)
     return
 
 def p_GotoStmt(p):
     '''GotoStmt : GOTO IDENTIFIER
     '''
+    parsed.append(p.slice)
     return
 
 def p_Expression(p):
@@ -760,6 +828,7 @@ def p_Expression(p):
                   | Expression AMP Expression
                   | Expression AND_OR Expression
     '''
+    parsed.append(p.slice)
     if len(p) == 2:
         p[0] = p[1]
     elif len(p) == 4:
@@ -773,11 +842,12 @@ def p_UnaryExpr(p):
     '''UnaryExpr : PrimaryExpr
                  | unary_op UnaryExpr
     '''
+    parsed.append(p.slice)
     if len(p) == 2:
         p[0] = p[1]
     elif len(p) == 3:
         p[0] = TreeNode('IDENTIFIER', temp_gen(), 'INT', 1)
-        p[0].TAC.add_line([p[1].data, p[0].data, p[2].data])
+        p[0].TAC.add_line([p[1].data, p[0].data, p[2].data, ''])
     p[0].name = 'UnaryExpr'
     return
 
@@ -790,6 +860,7 @@ def p_unary_op(p):
                 | AMP
                 | LT_MINUS
     '''
+    parsed.append(p.slice)
     p[0] = TreeNode('unary_op', p[1], 'OPERATOR')
     return
 
@@ -800,6 +871,7 @@ def p_PrimaryExpr(p):
                    | PrimaryExpr Index
                    | PrimaryExpr Arguments
     '''
+    parsed.append(p.slice)
     if len(p) == 2:
         if p.slice[1].type == 'IDENTIFIER':
             p[0] = TreeNode('IDENTIFIER', p[1], 'INT', 1, [])
@@ -816,6 +888,7 @@ def p_Operand(p):
     '''Operand  : Literal
                 | LROUND Expression RROUND
     '''
+    parsed.append(p.slice)
     if len(p) == 2:
         p[0] = p[1]
     else:
@@ -827,6 +900,7 @@ def p_Literal(p):
     '''Literal  : BasicLit
                 | FunctionLit
     '''
+    parsed.append(p.slice)
     p[0] = p[1]
     p[0].name = 'Literal'
     return
@@ -837,6 +911,7 @@ def p_BasicLit(p):
                 | string_lit
                 | rune_lit
     '''
+    parsed.append(p.slice)
     p[0] = p[1]
     p[0].name = 'BasicLit'
     return
@@ -846,6 +921,7 @@ def p_int_lit(p):
                | octal_lit
                | hex_lit
     '''
+    parsed.append(p.slice)
     p[0] = p[1]
     p[0].name = 'int_lit'
     return
@@ -853,30 +929,35 @@ def p_int_lit(p):
 def p_decimal_lit(p):
     '''decimal_lit : DECIMAL_LIT
     '''
+    parsed.append(p.slice)
     p[0] = TreeNode('decimal_lit', p[1], 'INT')
     return
 
 def p_octal_lit(p):
     '''octal_lit : OCTAL_LIT
     '''
+    parsed.append(p.slice)
     p[0] = TreeNode('octal_lit', p[1], 'OCT')
     return
 
 def p_hex_lit(p):
     '''hex_lit  : HEX_LIT
     '''
+    parsed.append(p.slice)
     p[0] = TreeNode('hex_lit', p[1], 'HEX')
     return
 
 def p_float_lit(p):
     '''float_lit : FLOAT_LIT
     '''
+    parsed.append(p.slice)
     p[0] = TreeNode('float_lit', p[1], 'FLOAT')
     return
 
 def p_FunctionLit(p):
     '''FunctionLit : FUNC Signature FunctionBody
     '''
+    parsed.append(p.slice)
     # Anonymous Function
     # Not implemented yet
     return
@@ -884,11 +965,13 @@ def p_FunctionLit(p):
 def p_Selector(p):
     '''Selector : DOT IDENTIFIER
     '''
+    parsed.append(p.slice)
     return
 
 def p_Index(p):
     '''Index : LSQUARE Expression RSQUARE
     '''
+    parsed.append(p.slice)
     return
 
 def p_Arguments(p):
@@ -899,6 +982,7 @@ def p_Arguments(p):
                  | LROUND Type COMMA ExpressionList RROUND
                  | LROUND Type COMMA Expression RROUND
     '''
+    parsed.append(p.slice)
     if len(p) == 3:
         p[0] = TreeNode('Arguments', 0, 'INT')
     return
@@ -906,12 +990,14 @@ def p_Arguments(p):
 def p_string_lit(p):
     '''string_lit : STRING_LIT
     '''
+    parsed.append(p.slice)
     p[0] = TreeNode('string_lit', p[1], 'STRING')
     return
 
 def p_rune_lit(p):
     '''rune_lit : RUNE_LIT
     '''
+    parsed.append(p.slice)
     p[0] = TreeNode('rune_lit', p[1], 'RUNE')
     return
 
