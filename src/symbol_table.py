@@ -8,6 +8,9 @@ class SymbolTableNode:
         self.name = name
         self.type_name = type_name
 
+    def print_node(self):
+        print self.name, self.type_name
+
 class SymbolTable:
     """Defines a class for SymbolTable"""
 
@@ -28,7 +31,7 @@ class SymbolTable:
         """Starts a scope"""
         self.current_scope = scope
 
-    def end_scope(self, scope):
+    def end_scope(self):
         """Ends a scope"""
         self.current_scope = self.symbol_table[self.current_scope]['parent']
 
@@ -38,23 +41,36 @@ class SymbolTable:
             'name': scope_name,
             'type': scope_name,
             'parent': self.current_scope,
-            'identifiers': []
+            'identifiers': [],
+            'functions': []
         }
         self.start_scope(scope_name)
 
     def add_identifier(self, TreeNode):
+        for node in self.symbol_table[self.current_scope]['identifiers']:
+            if TreeNode.data == node.name:
+                return True
         newNode = SymbolTableNode(TreeNode.data, TreeNode.input_type)
         self.symbol_table[self.current_scope]['identifiers'] += [newNode]
         return True
 
     def search_identifier(self, name):
-        return True
+        scope = self.current_scope
+        while scope != None:
+            for node in self.symbol_table[scope]['identifiers']:
+                if name == node.name:
+                    return True
+            scope = self.symbol_table[scope]['parent']
+        return False
 
-    # def print_symbol_table(self):
-        # """Prints the symbol table"""
-        # print 'SYMBOL TABLE'
-        # for i in range(len(self.symbol_table)):
-            # print self.symbol_table[i].name
+    def print_symbol_table(self):
+        """Prints the symbol table"""
+        print ''
+        print 'SYMBOL TABLE'
+        for y in self.symbol_table.keys():
+            print "scope", y, self.symbol_table[y]['parent']
+            for x in self.symbol_table[y]['identifiers']:
+                x.print_node()
 
     # def add_node(self, node):
         # """Adds a node to the SymbolTable"""

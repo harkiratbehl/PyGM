@@ -14,6 +14,14 @@ import sys
 parsed = []
 symbol_table = SymbolTable()
 
+generated = {}
+def gen(s):
+    temp = s + '_' + str(randint(0, sys.maxint))
+    if s not in generated.keys():
+        generated[s] = []
+    generated[s] += [temp]
+    return temp
+
 def label_gen():
     i = randint(0, sys.maxint)
     return 'label_' + str(i)
@@ -64,7 +72,7 @@ def p_SourceFile(p):
     # TODO: Ignoring package name and Imports for now
     p[0] = p[5]
     p[0].TAC.print_code()
-    # SymbolTable.print_symbol_table()
+    symbol_table.print_symbol_table()
     return
 
 def p_ImportDeclList(p):
@@ -133,12 +141,14 @@ def p_ScopeStart(p):
     '''ScopeStart : empty
     '''
     parsed.append(p.slice)
+    symbol_table.add_scope(gen('scope'))
     return
 
 def p_ScopeEnd(p):
     '''ScopeEnd : empty
     '''
     parsed.append(p.slice)
+    symbol_table.end_scope()
     return
 
 def p_StatementList(p):
