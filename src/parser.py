@@ -1,27 +1,29 @@
 #!/usr/bin/python
-import ply.lex as lex
-import ply.yacc as yacc
-from lexer import tokens
 
 from code import TreeNode
 from code import ThreeAddressCode
-from symbol_table import SymbolTable
-from symbol_table import symboltable_node
-import sys
+from lexer import tokens
 from random import *
+from symbol_table import SymbolTable
+
 import logging
+import ply.lex as lex
+import ply.yacc as yacc
+import sys
 
-ThreeAddrCode = ThreeAddressCode()
-SymbolTable = SymbolTable()
 parsed = []
-
-def temp_gen():
-    i = randint(0, sys.maxint)
-    return 'temp_' + str(i)
+symbol_table = SymbolTable()
 
 def label_gen():
     i = randint(0, sys.maxint)
     return 'label_' + str(i)
+
+def print_error(err):
+    print "*** Error: " + err + "! ***"
+
+def temp_gen():
+    i = randint(0, sys.maxint)
+    return 'temp_' + str(i)
 
 precedence = (
     ('left','IDENTIFIER'),
@@ -56,7 +58,7 @@ precedence = (
 )
 
 def p_SourceFile(p):
-    '''SourceFile : PACKAGE IDENTIFIER  SEMICOLON ImportDeclList TopLevelDeclList
+    '''SourceFile : PACKAGE IDENTIFIER SEMICOLON ImportDeclList TopLevelDeclList
     '''
     parsed.append(p.slice)
     # TODO: Ignoring package name and Imports for now
@@ -96,7 +98,7 @@ def p_TopLevelDecl(p):
 
 def p_ImportDecl(p):
     '''ImportDecl : IMPORT LROUND ImportSpecList RROUND
-                    | IMPORT ImportSpec
+                  | IMPORT ImportSpec
     '''
     parsed.append(p.slice)
     # TODO: Ignoring Imports for now
@@ -104,16 +106,16 @@ def p_ImportDecl(p):
 
 def p_ImportSpecList(p):
     '''ImportSpecList : ImportSpec SEMICOLON ImportSpecList
-                        | empty
+                      | empty
     '''
     parsed.append(p.slice)
     # TODO: Ignoring Imports for now
     return
 
 def p_ImportSpec(p):
-    '''ImportSpec :  DOT string_lit
-                    | IDENTIFIER string_lit
-                    | empty string_lit
+    '''ImportSpec : DOT string_lit
+                  | IDENTIFIER string_lit
+                  | empty string_lit
     '''
     parsed.append(p.slice)
     # TODO: Ignoring Imports for now
@@ -141,7 +143,7 @@ def p_ScopeEnd(p):
 
 def p_StatementList(p):
     '''StatementList : Statement SEMICOLON StatementList
-                    | empty
+                     | empty
     '''
     parsed.append(p.slice)
     if len(p) == 4:
@@ -459,7 +461,7 @@ def p_VarSpec(p):
             for i in range(l1):
                 p[0].TAC.add_line(['=', p[1].children[i], expr_list.children[i].data, ''])
         else:
-            print "*** Error: Variable Declaration mismatch:", l1, "identifier(s) but", l2, "value(s)! ***"
+            print_error("Variable Declaration mismatch: " + str(l1) + " identifier(s) but " + str(l2) + " value(s)")
 
     else:
         if len(p) == 3:
@@ -524,7 +526,7 @@ def p_IncDecStmt(p):
         else:
             p[0].TAC.add_line(['-', p[1].data, p[1].data, one_val.data])
     else:
-        print "*** Error: Lvalue required! ***"
+        print_error("Lvalue required")
     p[0].name = 'IncDecStmt'
     return
 
@@ -543,33 +545,24 @@ def p_ShortVarDecl(p):
         if l1 == l2:
             for i in range(l1):
                 if p[1].children[i].isLvalue == 0:
-                    print "*** Error: Lvalue required! ***"
-
+                    print_error("Lvalue required")
                 else:
-                    if SymbolTable.search_node(p[1].children[i].data) == 0:
-                        node = symboltable_node()
-                        node.name = p[1].children[i].data
-                        node.type = 'INT'
-                        SymbolTable.add_node(node)
+                    if symbol_table.add_identifier(p[1].children[i]) == False:
+                        print_error("Unable to add to SymbolTable")
                     p[0].TAC.add_line([p[2], p[1].children[i].data, p[3].children[i].data, ''])
-
         else:
-            print "*** Error: Assignment mismatch:", l1, "identifier(s) but", l2, "value(s)! ***"
+            print_error("Variable Declaration mismatch: " + str(l1) + " identifier(s) but " + str(l2) + " value(s)")
 
     elif p[1].name == 'Expression':
         if p[1].isLvalue == 0:
-            print "*** Error: Lvalue required! ***"
+            print_error("Lvalue required")
 
         else:
+            if symbol_table.add_identifier(p[1]) == False:
+                print_error("Unable to add to SymbolTable")
             p[0].TAC.append_TAC(p[3].TAC)
             p[0].TAC.append_TAC(p[1].TAC)
             p[0].TAC.add_line([p[2], p[1].data, p[3].data, ''])
-            if SymbolTable.search_node(p[1].data) == 0:
-                node = symboltable_node()
-                node.name = p[1].data
-                node.type = 'INT'
-                SymbolTable.add_node(node)
-
     return
 
 def p_Assignment(p):
@@ -586,43 +579,31 @@ def p_Assignment(p):
         if l1 == l2:
             for i in range(l1):
                 if p[1].children[i].isLvalue == 0:
-                    print "*** Error: Lvalue required! ***"
+                    print_error("Lvalue required")
                 else:
-                    if SymbolTable.search_node(p[1].children[i].data) == 0:
-                        node = symboltable_node()
-                        node.name = p[1].children[i].data
-                        node.type = 'INT'
-                        SymbolTable.add_node(node)
+                    # if symbol_table.search_identifier(p[1].children[i].data) == False:
+                        # print_error("Variable " + p[1].children[i].data + " is undefined")
+                    # if symbol_table.search_identifier(p[3].children[i].data) == False:
+                        # print_error("Variable " + p[3].children[i].data + " is undefined")
 
-                    if SymbolTable.search_node(p[3].children[i].data) == 0 and p[3].children[i].isLvalue ==1:
-                        node = symboltable_node()
-                        node.name = p[3].children[i].data
-                        node.type = 'INT'
-                        SymbolTable.add_node(node)
                     p[0].TAC.add_line([p[2].data, p[1].children[i].data, p[3].children[i].data, ''])
         else:
-            print "*** Error: Assignment mismatch:", l1, "identifier(s) but", l2, "value(s)! ***"
+            print_error("Variable Declaration mismatch: " + str(l1) + " identifier(s) but " + str(l2) + " value(s)")
 
     elif p[1].name == 'Expression':
-        # p[0] = TreeNode('Assignment', 0, 'INT', 0, p[1].children + p[3].children, p[1].TAC.append_TAC(p[3].TAC))
         if p[1].isLvalue == 0:
-            print "*** Error: Cannot assign to constant ***"
+            print_error("Lvalue required")
             return
         else:
+            # if symbol_table.search_identifier(p[1].data) == False:
+                # print_error("Variable " + p[1].data + " is undefined")
+                # return
+            # if p[3].isLvalue == 1 and symbol_table.search_identifier(p[3].data) == False:
+                # print_error("Variable " + p[3].data + " is undefined")
+                # return
             p[0].TAC.append_TAC(p[3].TAC)
             p[0].TAC.append_TAC(p[1].TAC)
             p[0].TAC.add_line([p[2].data, p[1].data, p[3].data, ''])
-            if SymbolTable.search_node(p[1].data) == 0:# and p[1].children[i].isLvalue ==1:
-                node = symboltable_node()
-                node.name = p[1].data
-                node.type = 'INT'
-                SymbolTable.add_node(node)
-            if SymbolTable.search_node(p[3].data) == 0 and p[3].isLvalue ==1:
-                node = symboltable_node()
-                node.name = p[3].data
-                node.type = 'INT'
-                SymbolTable.add_node(node)
-            return
 
 def p_assign_op(p):
     '''assign_op : EQ
