@@ -5,27 +5,26 @@
 import sys
 from code import Code, ThreeAddressCode
 from registers import Registers
-from symbol_table import SymbolTable
+# from symbol_table import SymbolTable
 
 three_addr_code = ThreeAddressCode()
 assembly_code = Code()
-symbol_table = SymbolTable()
+# symbol_table = SymbolTable()
 registers = Registers()
 input_file = ''
 
 end_main = 0
 
-def convert_tac():
+def convert_tac(ThreeAddressCode):
     """Reads three adress code generated from parser and converts to TAC for codegen;
     generates the three_addr_code along with leaders;
     populates generate symbol table as per three_addr_code"""
 
-    for line in open(input_file, 'r'):
-        line = line.rstrip('\n')
-        if line == '':
-            continue
-        three_addr_instr = line.split(',')
+    for i in range(ThreeAddressCode.length()):
+        three_addr_instr = ThreeAddressCode.code[i]
+        three_addr_instr = [str(i+1)] + three_addr_instr
         three_addr_code.add_line(three_addr_instr)
+
 
         if len(three_addr_instr) != 5:
             print("Incorrect size for the following instruction: ")
@@ -66,10 +65,9 @@ def convert_tac():
             three_addr_code.add_leader(three_addr_code.length())
 
     three_addr_code.leaders = sorted(three_addr_code.leaders, key=int)
-    symbol_table.fill_symbol_table(three_addr_code)
-    return 0
+    return three_addr_code
 
-def generate_assembly():
+def generate_assembly(three_addr_code,symbol_table):
     """Generate assembly code"""
 
     # data region to handle global data and constants
@@ -90,9 +88,14 @@ def generate_assembly():
         three_addr_instr = three_addr_code.code[i]
         if translator(three_addr_instr) != 0:
             translator_error = 1
-            print(three_addr_instr)
+            print('Unidentified operator in the above line(s)' + three_addr_instr)
+            return 
 
-    return translator_error
+    if end_main == 0:
+            assembly_code.add_line('li $v0, 10')
+            assembly_code.add_line('syscall')
+
+    return assembly_code
 
 def translator(three_addr_instr):
     """Translate Three Address Instruction to Assembly"""

@@ -22,7 +22,8 @@ class SymbolTable:
                 'type': 'global',
                 'parent': None,
                 'identifiers': [],
-                'functions': []
+                'functions': [],
+                'allvars': []
             }
         }
         self.current_scope = 'global'
@@ -42,7 +43,8 @@ class SymbolTable:
             'type': scope_name,
             'parent': self.current_scope,
             'identifiers': [],
-            'functions': []
+            'functions': [],
+            'allvars': []
         }
         self.start_scope(scope_name)
 
@@ -52,6 +54,14 @@ class SymbolTable:
                 return True
         newNode = SymbolTableNode(TreeNode.data, TreeNode.input_type)
         self.symbol_table[self.current_scope]['identifiers'] += [newNode]
+        return True
+
+    def add_var(self, TreeNode):
+        for node in self.symbol_table[self.current_scope]['allvars']:
+            if TreeNode.name == node.name:
+                return True
+        # newNode = SymbolTableNode(TreeNode.name, TreeNode.type_name)
+        self.symbol_table[self.current_scope]['allvars'] += [TreeNode]
         return True
 
     def search_identifier(self, name):
@@ -70,6 +80,8 @@ class SymbolTable:
         for y in self.symbol_table.keys():
             print "scope", y, self.symbol_table[y]['parent']
             for x in self.symbol_table[y]['identifiers']:
+                x.print_node()
+            for x in self.symbol_table[y]['allvars']:
                 x.print_node()
 
     # def add_node(self, node):

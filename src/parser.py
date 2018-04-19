@@ -5,11 +5,21 @@ from code import ThreeAddressCode
 from lexer import tokens
 from random import *
 from symbol_table import SymbolTable
+from symbol_table import SymbolTableNode
+
 
 import logging
 import ply.lex as lex
 import ply.yacc as yacc
 import sys
+
+
+from codegen import convert_tac
+from code import Code
+from codegen import generate_assembly
+three_addr_code = ThreeAddressCode()
+assembly_code = Code()
+
 
 parsed = []
 symbol_table = SymbolTable()
@@ -44,8 +54,13 @@ def check_variable(TreeNode):
                 print_error("Variable " + TreeNode.data + " is undefined")
                 return TreeNode.data
             else:
-                return symbol_table.search_identifier(TreeNode.data)
+                name = symbol_table.search_identifier(TreeNode.data)
+                newNode = SymbolTableNode(name, TreeNode.input_type)
+                symbol_table.add_var(newNode)
+                return name
         else:
+            newNode = SymbolTableNode(TreeNode.data, TreeNode.input_type)
+            symbol_table.add_var(newNode)
             return TreeNode.data
     else:
         return TreeNode.data
@@ -88,7 +103,10 @@ def p_SourceFile(p):
     parsed.append(p.slice)
     # TODO: Ignoring package name and Imports for now
     p[0] = p[5]
-    p[0].TAC.print_code()
+    # p[0].TAC.print_code()
+    three_addr_code = convert_tac(p[0].TAC)
+    # assembly_code = generate_assembly()
+    three_addr_code.print_code()
     symbol_table.print_symbol_table()
     return
 
@@ -618,7 +636,6 @@ def p_Assignment(p):
                     print_error("Lvalue required")
                     return
                 else:
-                    p[1].children[i].print_node()
                     if symbol_table.search_identifier(p[1].children[i].data) == False and p[1].children[i].data not in generated['temp']:
                         print_error("Variable " + p[1].children[i].data + " is undefined")
                         return
