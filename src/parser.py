@@ -23,6 +23,7 @@ assembly_code = Code()
 
 parsed = []
 symbol_table = SymbolTable()
+var_list = []
 
 generated = {}
 
@@ -104,10 +105,13 @@ def p_SourceFile(p):
     # TODO: Ignoring package name and Imports for now
     p[0] = p[5]
     # p[0].TAC.print_code()
+    var_list = symbol_table.make_var_list()
     three_addr_code = convert_tac(p[0].TAC)
-    # assembly_code = generate_assembly()
+    symbol_table.fill_next_use(three_addr_code)
+    assembly_code = generate_assembly(three_addr_code,var_list,symbol_table)
+    assembly_code.print_code()
     three_addr_code.print_code()
-    symbol_table.print_symbol_table()
+    # symbol_table.print_symbol_table()
     return
 
 def p_ImportDeclList(p):
@@ -692,7 +696,7 @@ def p_IfStmt(p):
         l1 = label_gen()
         p[0] = TreeNode('IfStmt', 0, 'INT')
         p[0].TAC.append_TAC(p[2].TAC)
-        p[0].TAC.add_line(['ifgotoeq', check_variable(p[2]), 0, l1])
+        p[0].TAC.add_line(['ifgotoeq', check_variable(p[2]), '0', l1])
         p[0].TAC.append_TAC(p[3].TAC)
         p[0].TAC.add_line(['label', l1, '', ''])
     if len(p) == 6:
@@ -700,7 +704,7 @@ def p_IfStmt(p):
         l2 = label_gen()
         p[0] = TreeNode('IfStmt', 0, 'INT')
         p[0].TAC.append_TAC(p[2].TAC)
-        p[0].TAC.add_line(['ifgotoeq', check_variable(p[2]), 0, l1])
+        p[0].TAC.add_line(['ifgotoeq', check_variable(p[2]), '0', l1])
         p[0].TAC.append_TAC(p[3].TAC)
         p[0].TAC.add_line(['goto', l2, '', ''])
         p[0].TAC.add_line(['label', l1, '', ''])
@@ -807,7 +811,7 @@ def p_ForStmt(p):
         l2 = label_gen()
         p[0].TAC.add_line(['label', l1, '', ''])
         p[0].TAC.append_TAC(p[2].TAC)
-        p[0].TAC.add_line(['ifgotoeq',check_variable(p[2]), 0, l2])
+        p[0].TAC.add_line(['ifgotoeq',check_variable(p[2]), '0', l2])
         p[0].TAC.append_TAC(p[3].TAC)
         p[0].TAC.add_line(['goto', l1, '', ''])
         p[0].TAC.add_line(['label', l2, '', ''])

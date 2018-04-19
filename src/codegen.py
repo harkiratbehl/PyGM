@@ -5,11 +5,10 @@
 import sys
 from code import Code, ThreeAddressCode
 from registers import Registers
-# from symbol_table import SymbolTable
+from symbol_table import SymbolTable
 
 three_addr_code = ThreeAddressCode()
 assembly_code = Code()
-# symbol_table = SymbolTable()
 registers = Registers()
 input_file = ''
 
@@ -67,17 +66,23 @@ def convert_tac(ThreeAddressCode):
     three_addr_code.leaders = sorted(three_addr_code.leaders, key=int)
     return three_addr_code
 
-def generate_assembly(three_addr_code,symbol_table):
+def generate_assembly(three_addr_code,var_list,symbol_table):
     """Generate assembly code"""
 
     # data region to handle global data and constants
     assembly_code.add_line('\t.data')
     assembly_code.add_line('newline:\t.asciiz "\n"')
 
-    for var in symbol_table.variables:
+    #declaring variables from list of variables
+    for var in var_list:
         line = '%s:\t.word 0' % var
         assembly_code.add_line(line)
 
+    #filling the new symbol table
+    #done 
+
+
+    #main section
     assembly_code.add_line('\t.text')
     assembly_code.add_line('main:')
 
@@ -86,7 +91,7 @@ def generate_assembly(three_addr_code,symbol_table):
         # if i in three_addr_code.leaders:
         #     assembly_code.add_line('Line_' + str(i + 1) + ':')
         three_addr_instr = three_addr_code.code[i]
-        if translator(three_addr_instr) != 0:
+        if translator(three_addr_instr,symbol_table) != 0:
             translator_error = 1
             print('Unidentified operator in the above line(s)' + three_addr_instr)
             return 
@@ -97,7 +102,7 @@ def generate_assembly(three_addr_code,symbol_table):
 
     return assembly_code
 
-def translator(three_addr_instr):
+def translator(three_addr_instr,symbol_table):
     """Translate Three Address Instruction to Assembly"""
     global end_main
 

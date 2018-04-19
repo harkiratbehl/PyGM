@@ -1,4 +1,6 @@
 """Defines the classes SymbolTable and SymbolTableNode"""
+import sys
+from numpy import ones
 
 class SymbolTableNode:
     """Defines a class SymbolTableNode which stores the nodes in the SymbolTable"""
@@ -23,9 +25,12 @@ class SymbolTable:
                 'parent': None,
                 'identifiers': [],
                 'functions': [],
-                'allvars': []
+                'allvars': [],
+                'nextuse': dict()
             }
         }
+        self.var_list = []
+        self.next_use = dict()
         self.current_scope = 'global'
 
     def start_scope(self, scope):
@@ -44,7 +49,8 @@ class SymbolTable:
             'parent': self.current_scope,
             'identifiers': [],
             'functions': [],
-            'allvars': []
+            'allvars': [],
+            'nextuse': dict()
         }
         self.start_scope(scope_name)
 
@@ -83,6 +89,33 @@ class SymbolTable:
                 x.print_node()
             for x in self.symbol_table[y]['allvars']:
                 x.print_node()
+
+    def make_var_list(self):
+        for y in self.symbol_table.keys():
+            for x in self.symbol_table[y]['allvars']:
+                if x.name not in self.var_list:
+                    self.var_list += [x.name]
+        return self.var_list
+
+    def fill_next_use(self,three_address_code):
+        line_count = three_address_code.length()
+
+        # Initializing symbol_table values for each variable
+        for var in self.var_list:
+            self.next_use[var] = [sys.maxsize * ones(line_count), 0]
+
+        # traversing the three_address_code in reverse order
+        for i in range(line_count):
+            j = line_count - i - 1
+            three_address_instr = three_address_code.code[j]
+            var1 = three_address_instr[3]
+            var2 = three_address_instr[4]
+
+            for line_no in range(0, j):
+                if var1 in self.var_list:
+                    self.next_use[var1][0][line_no] = j + 1
+                if var2 in self.var_list:
+                    self.next_use[var2][0][line_no] = j + 1
 
     # def add_node(self, node):
         # """Adds a node to the SymbolTable"""
