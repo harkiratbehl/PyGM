@@ -25,9 +25,8 @@ parsed = []
 symbol_table = SymbolTable()
 var_list = []
 
-generated = {}
+generated = {'temp': [], 'scope': [], 'label': []}
 
-generated['temp']=[]
 def gen(s):
     temp = s + '_' + str(randint(0, sys.maxint))
     if s not in generated.keys():
@@ -35,17 +34,8 @@ def gen(s):
     generated[s] += [temp]
     return temp
 
-def label_gen():
-    i = randint(0, sys.maxint)
-    return 'label_' + str(i)
-
 def print_error(err):
     print "*** Error: " + err + "! ***"
-
-def temp_gen():
-    i = randint(0, sys.maxint)
-    return 'temp_' + str(i)
-
 
 def check_variable(TreeNode):
     # return 2 values. first is the name for the variable, second is 0 if variable not found
@@ -104,13 +94,13 @@ def p_SourceFile(p):
     parsed.append(p.slice)
     # TODO: Ignoring package name and Imports for now
     p[0] = p[5]
-    # p[0].TAC.print_code()
+    p[0].TAC.print_code()
     var_list = symbol_table.make_var_list()
     three_addr_code = convert_tac(p[0].TAC)
     symbol_table.fill_next_use(three_addr_code)
     # three_addr_code.print_code()
     assembly_code = generate_assembly(three_addr_code,var_list,symbol_table)
-    assembly_code.print_code()
+    # assembly_code.print_code()
     # symbol_table.print_symbol_table()
     return
 
@@ -137,7 +127,7 @@ def p_TopLevelDeclList(p):
 
 def p_TopLevelDecl(p):
     '''TopLevelDecl  : Declaration
-                    | FunctionDecl
+                     | FunctionDecl
     '''
     parsed.append(p.slice)
     p[0] = p[1]
@@ -281,6 +271,7 @@ def p_IdentifierBotList(p):
     '''
     parsed.append(p.slice)
     if len(p) == 2:
+        # node = TreeNode('IDENTIFIER', p[1], 'INT', )
         p[0] = TreeNode('IdentifierBotList', 0, 'INT', 0, [p[1]])
     elif len(p) == 4:
         p[0] = TreeNode('IdentifierBotList', 0, 'INT', 0, [p[1]] + p[3].children, p[3].TAC)
@@ -439,6 +430,12 @@ def p_Signature(p):
                  | Parameters Result
     '''
     parsed.append(p.slice)
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        p[0] = p[1]
+        p[0].input_type = p[2]
+    p[0].name = 'Signature'
     return
 
 def p_Result(p):
@@ -446,6 +443,8 @@ def p_Result(p):
               | Type
     '''
     parsed.append(p.slice)
+    p[0] = p[1]
+    p[0].name = 'Result'
     return
 
 def p_Parameters(p):
@@ -453,6 +452,11 @@ def p_Parameters(p):
                   | LROUND ParameterList RROUND
     '''
     parsed.append(p.slice)
+    if len(p) == 3:
+        p[0] = TreeNode('Parameters', 0, 'None')
+    else:
+        p[0] = p[2]
+        p[0].name = 'Parameters'
     return
 
 def p_ParameterList(p):
@@ -460,6 +464,11 @@ def p_ParameterList(p):
                      | ParameterList COMMA ParameterDecl
     '''
     parsed.append(p.slice)
+    if len(p) == 2:
+        p[0] = TreeNode('ParameterList', 1, 'None', 0, [p[1]], p[1].TAC)
+    elif len(p) == 4:
+        p[0] = TreeNode('ParameterList', p[1].data + 1, 'None', 1, [p[1]] + p[3].children, p[1].TAC)
+        p[0].TAC.append_TAC(p[3].TAC)
     return
 
 def p_ParameterDecl(p):
@@ -468,6 +477,14 @@ def p_ParameterDecl(p):
                      | Type
     '''
     parsed.append(p.slice)
+    if len(p) == 3:
+        if hasattr(p[1], 'name') and  p[1].name == 'IdentifierList':
+            # TODO
+            p[1].print_node()
+        else:
+            node = TreeNode('IDENTIFIER', p[1], p[2].data, 1)
+            p[0] = node
+        p[0].name = 'ParameterDecl'
     return
 
 def p_VarDecl(p):
@@ -549,7 +566,12 @@ def p_FunctionDecl(p):
                     | FUNC FunctionName Signature FunctionBody
     '''
     parsed.append(p.slice)
+    if p[3].input_type == 'None':
+        p[0]
+    else:
+        p[3].input_type.print_node()
     p[0] = TreeNode('FunctionDecl', 0, 'INT')
+    symbol_table.add_function(p[2].data, p[3].input_type, p[3].children)
     if len(p) == 5:
         p[0].TAC.add_line(['func', check_variable(p[2]), '', ''])
         p[0].TAC.append_TAC(p[4].TAC)
@@ -707,15 +729,15 @@ def p_IfStmt(p):
     '''
     parsed.append(p.slice)
     if len(p) == 4:
-        l1 = label_gen()
+        l1 = gen('label')
         p[0] = TreeNode('IfStmt', 0, 'INT')
         p[0].TAC.append_TAC(p[2].TAC)
         p[0].TAC.add_line(['ifgotoeq', check_variable(p[2]), '0', l1])
         p[0].TAC.append_TAC(p[3].TAC)
         p[0].TAC.add_line(['label', l1, '', ''])
     if len(p) == 6:
-        l1 = label_gen()
-        l2 = label_gen()
+        l1 = gen('label')
+        l2 = gen('label')
         p[0] = TreeNode('IfStmt', 0, 'INT')
         p[0].TAC.append_TAC(p[2].TAC)
         p[0].TAC.add_line(['ifgotoeq', check_variable(p[2]), '0', l1])
@@ -750,8 +772,8 @@ def p_ExprSwitchStmt(p):
     '''
     parsed.append(p.slice)
     if len(p) == 8:
-        l1 = label_gen()
-        l2 = label_gen()
+        l1 = gen('label')
+        l2 = gen('label')
         p[0] = TreeNode('ExprSwitchStmt', 0, 'INT')
         p[0].TAC.append_TAC(p[2].TAC)
         t1 = gen('temp')
@@ -790,7 +812,7 @@ def p_ExprCaseClause(p):
     '''ExprCaseClause : ExprSwitchCase COLON StatementList
     '''
     parsed.append(p.slice)
-    l1 = label_gen()
+    l1 = gen('label')
     p[0] = TreeNode('ExprCaseClause', 0, 'INT')
     # p[0].TAC.append_TAC(p[1].TAC)
     p[0].TAC.add_line(['label', l1, '', ''])
@@ -821,8 +843,8 @@ def p_ForStmt(p):
     parsed.append(p.slice)
     p[0] = TreeNode('ForStmt', 0, 'INT')
     if len(p) == 4:
-        l1 = label_gen()
-        l2 = label_gen()
+        l1 = gen('label')
+        l2 = gen('label')
         p[0].TAC.add_line(['label', l1, '', ''])
         p[0].TAC.append_TAC(p[2].TAC)
         p[0].TAC.add_line(['ifgotoeq',check_variable(p[2]), '0', l2])
@@ -831,8 +853,8 @@ def p_ForStmt(p):
         p[0].TAC.add_line(['label', l2, '', ''])
 
     if len(p) == 3:
-        l1 = label_gen()
-        # l2 = label_gen()
+        l1 = gen('label')
+        # l2 = gen('label')
         p[0].TAC.add_line(['label', l1, '', ''])
         p[0].TAC.append_TAC(p[2].TAC)
         p[0].TAC.add_line(['goto', l1, '', ''])
@@ -845,6 +867,14 @@ def p_ReturnStmt(p):
                   | RETURN ExpressionList
     '''
     parsed.append(p.slice)
+    if len(p) == 2:
+        p[0] = TreeNode('ReturnStmt', 0, 'None')
+        p[0].TAC.add_line(['return', '', '', ''])
+    if len(p) == 3:
+        if p[2].name == 'Expression':
+            p[0] = p[2]
+            p[0].name = 'ReturnStmt'
+            p[0].TAC.add_line(['return', check_variable(p[2]), '', ''])
     return
 
 def p_BreakStmt(p):
@@ -937,9 +967,10 @@ def p_PrimaryExpr(p):
         elif p[1].name == 'Operand':
             p[0] = p[1]
     elif len(p) == 3:
+        print p.slice
         if p[2].name == 'Arguments':
             p[0] = p[1]
-            p[0].TAC.add_line(['call', check_variable(p[1]), '', ''])
+            p[0].TAC.add_line(['call', check_variable(p[1]), str(p[2].data), ''])
     p[0].name = 'PrimaryExpr'
     return
 
@@ -1041,9 +1072,19 @@ def p_Arguments(p):
                  | LROUND Type COMMA ExpressionList RROUND
                  | LROUND Type COMMA Expression RROUND
     '''
+    # print p.slice
     parsed.append(p.slice)
     if len(p) == 3:
-        p[0] = TreeNode('Arguments', 0, 'INT')
+        p[0] = TreeNode('Arguments', 0, 'None')
+    if len(p) == 4:
+        if p[2].name == 'Expression':
+            p[0] = p[2]
+            p[2].name = 'Arguments'
+            p[2].data = 1
+        if p[2].name == 'ExpressionList':
+            p[0] = p[2]
+            p[2].name = 'Arguments'
+            p[2].data = len(p[2].children)
     return
 
 def p_string_lit(p):

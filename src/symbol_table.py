@@ -5,13 +5,17 @@ from numpy import ones
 class SymbolTableNode:
     """Defines a class SymbolTableNode which stores the nodes in the SymbolTable"""
 
-    def __init__(self, name, type_name):
+    def __init__(self, name, type_name, parameters = None):
         """Initializes the Node"""
         self.name = name
         self.type_name = type_name
+        if parameters is None:
+            self.parameters = []
+        else:
+            self.parameters = parameters
 
     def print_node(self):
-        print self.name, self.type_name
+        print self.name, self.type_name, self.parameters
 
 class SymbolTable:
     """Defines a class for SymbolTable"""
@@ -60,6 +64,11 @@ class SymbolTable:
                 return True
         newNode = SymbolTableNode(TreeNode.data, TreeNode.input_type)
         self.symbol_table[self.current_scope]['identifiers'] += [newNode]
+        return True
+
+    def add_function(self, name, return_type, parameters):
+        newNode = SymbolTableNode(name, return_type, parameters)
+        self.symbol_table[self.current_scope]['functions'] += [newNode]
         return True
 
     def add_var(self, TreeNode):

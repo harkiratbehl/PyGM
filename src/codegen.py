@@ -12,7 +12,7 @@ assembly_code = Code()
 registers = Registers()
 input_file = ''
 
-end_main = 0
+start_main = 0
 
 def convert_tac(ThreeAddressCode):
     """Reads three adress code generated from parser and converts to TAC for codegen;
@@ -78,13 +78,10 @@ def generate_assembly(three_addr_code,var_list,symbol_table):
         line = '%s:\t.word 0' % var
         assembly_code.add_line(line)
 
-    #filling the new symbol table
-    #done 
-
-
-    #main section
+    # functions
     assembly_code.add_line('\t.text')
-    assembly_code.add_line('main:')
+
+    global start_main
 
     translator_error = 0
     for i in range(three_addr_code.length()):
@@ -94,17 +91,17 @@ def generate_assembly(three_addr_code,var_list,symbol_table):
         if translator(three_addr_instr,symbol_table) != 0:
             translator_error = 1
             print('Unidentified operator in the above line(s)' + three_addr_instr)
-            return 
+            return
 
-    if end_main == 0:
-            assembly_code.add_line('li $v0, 10')
-            assembly_code.add_line('syscall')
+    if start_main == 1:
+        assembly_code.add_line('li $v0, 10')
+        assembly_code.add_line('syscall')
 
     return assembly_code
 
 def translator(three_addr_instr,symbol_table):
     """Translate Three Address Instruction to Assembly"""
-    global end_main
+    global start_main
 
     # parse three_addr_instr
     line_no = int(three_addr_instr[0])
@@ -131,12 +128,16 @@ def translator(three_addr_instr,symbol_table):
         return 0
 
     if instr_op == 'func':
-        if dest!='main':
-            if end_main == 0:
-                assembly_code.add_line('li $v0, 10')
-                assembly_code.add_line('syscall')
-                end_main = 1
+        if dest == 'main':
+            assembly_code.add_line('main:')
+            start_main = 1
 
+        if dest != 'main' and start_main == 1:
+            assembly_code.add_line('li $v0, 10')
+            assembly_code.add_line('syscall')
+            start_main = 0
+
+        if dest != 'main':
             assembly_code.add_line('func_' + dest + ':')
             assembly_code.add_line('sub $sp, $sp, 4')
             assembly_code.add_line('sw $fp, ($sp)')
@@ -364,9 +365,9 @@ if __name__ == '__main__':
 
     if read_input_file() == 0:
         if generate_assembly() == 0:
-            if end_main == 0:
-                assembly_code.add_line('li $v0, 10')
-                assembly_code.add_line('syscall')
+            # if start_main == 1:
+                # assembly_code.add_line('li $v0, 10')
+                # assembly_code.add_line('syscall')
             assembly_code.print_code()
         else:
             print('Unidentified operator in the above line(s)')
