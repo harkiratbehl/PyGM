@@ -110,7 +110,7 @@ def p_SourceFile(p):
     symbol_table.fill_next_use(three_addr_code)
     assembly_code = generate_assembly(three_addr_code,var_list,symbol_table)
     assembly_code.print_code()
-    three_addr_code.print_code()
+    # three_addr_code.print_code()
     # symbol_table.print_symbol_table()
     return
 
@@ -213,10 +213,24 @@ def p_Statement(p):
                  | BreakStmt
                  | ContinueStmt
                  | GotoStmt
+                 | PrintIntStmt
     '''
     parsed.append(p.slice)
     p[0] = p[1]
     p[0].name = 'Statement'
+    return
+
+def p_PrintIntStmt(p):
+    '''PrintIntStmt : PRINTLN LROUND IDENTIFIER RROUND
+                 | PRINTLN LROUND BasicLit RROUND
+    '''
+    if hasattr(p[3], 'name') and p[3].name == 'BasicLit':
+        p[0] = p[3]
+        # p[0].isLvalue = 0
+    else:
+        p[0] = TreeNode('IDENTIFIER', p[3], 'INT', 1, [])
+    p[0].TAC.add_line(['print_int', check_variable(p[0]), '', ''])
+    p[0].name = 'PrintIntStmt'
     return
 
 def p_Declaration(p):

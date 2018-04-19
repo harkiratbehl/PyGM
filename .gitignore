@@ -114,3 +114,7 @@ bin/
 # swap files
 *.swp
 
+t.go
+t.ir
+parselog.txt
+src/parsetab.py

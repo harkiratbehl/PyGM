@@ -2,11 +2,11 @@ package main
 
 func main(){
 	i := 3
+	a:=1
 	if i == 3 {
-        a := 3
-    } else if i == 2 {
-        a := 2
+        a = i
     } else {
-        a := -1
+        a = 1
     }
+    Println(a)
 }

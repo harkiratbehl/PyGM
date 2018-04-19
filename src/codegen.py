@@ -131,16 +131,17 @@ def translator(three_addr_instr,symbol_table):
         return 0
 
     if instr_op == 'func':
-        if end_main == 0:
-            assembly_code.add_line('li $v0, 10')
-            assembly_code.add_line('syscall')
-            end_main = 1
+        if dest!='main':
+            if end_main == 0:
+                assembly_code.add_line('li $v0, 10')
+                assembly_code.add_line('syscall')
+                end_main = 1
 
-        assembly_code.add_line('func_' + dest + ':')
-        assembly_code.add_line('sub $sp, $sp, 4')
-        assembly_code.add_line('sw $fp, ($sp)')
-        assembly_code.add_line('sub $sp, $sp, 4')
-        assembly_code.add_line('sw $ra, ($sp)')
+            assembly_code.add_line('func_' + dest + ':')
+            assembly_code.add_line('sub $sp, $sp, 4')
+            assembly_code.add_line('sw $fp, ($sp)')
+            assembly_code.add_line('sub $sp, $sp, 4')
+            assembly_code.add_line('sw $ra, ($sp)')
         return 0
 
     if instr_op == 'call':

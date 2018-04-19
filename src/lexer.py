@@ -116,7 +116,8 @@ tokens = list(reserved_keywords.values()) + [
 
     'BREAK',
     'CONTINUE',
-    'RETURN'
+    'RETURN',
+    'PRINTLN'
 ]
 
 t_ignore = ' \t'
@@ -137,6 +138,11 @@ def t_CONTINUE(t):
 
 def t_RETURN(t):
     r'return'
+    setSemiMode()
+    return t
+
+def t_PRINTLN(t):
+    r'Println'
     setSemiMode()
     return t
 
