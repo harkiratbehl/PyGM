@@ -108,9 +108,9 @@ def p_SourceFile(p):
     var_list = symbol_table.make_var_list()
     three_addr_code = convert_tac(p[0].TAC)
     symbol_table.fill_next_use(three_addr_code)
+    # three_addr_code.print_code()
     assembly_code = generate_assembly(three_addr_code,var_list,symbol_table)
     assembly_code.print_code()
-    # three_addr_code.print_code()
     # symbol_table.print_symbol_table()
     return
 
@@ -589,7 +589,7 @@ def p_IncDecStmt(p):
                   | Expression MINUS_MINUS
     '''
     parsed.append(p.slice)
-    one_val = TreeNode('IncDecStmt', 1, 'INT')
+    one_val = TreeNode('IncDecStmt', '1', 'INT')
     p[0] = p[1]
     if p[1].isLvalue == 1:
         if p[2] == '++':
