@@ -15,6 +15,8 @@ parsed = []
 symbol_table = SymbolTable()
 
 generated = {}
+
+generated['temp']=[]
 def gen(s):
     temp = s + '_' + str(randint(0, sys.maxint))
     if s not in generated.keys():
@@ -32,6 +34,21 @@ def print_error(err):
 def temp_gen():
     i = randint(0, sys.maxint)
     return 'temp_' + str(i)
+
+
+def check_variable(TreeNode):
+    # return 2 values. first is the name for the variable, second is 0 if variable not found
+    if TreeNode.isLvalue == 1:
+        if TreeNode.data not in generated['temp']:
+            if symbol_table.search_identifier(TreeNode.data) == False:
+                print_error("Variable " + TreeNode.data + " is undefined")
+                return TreeNode.data
+            else:
+                return symbol_table.search_identifier(TreeNode.data)
+        else:
+            return TreeNode.data
+    else:
+        return TreeNode.data
 
 precedence = (
     ('left','IDENTIFIER'),
@@ -441,7 +458,6 @@ def p_VarSpecList(p):
     '''VarSpecList : empty
                    | VarSpecList VarSpec SEMICOLON
     '''
-    parsed.append(p.slice)
     return
 
 def p_VarSpec(p):
@@ -452,35 +468,44 @@ def p_VarSpec(p):
                | IdentifierList EQ ExpressionList
                | IdentifierList Type EQ ExpressionList
     '''
-    parsed.append(p.slice)
     # Insert into symbol table
     p[0] = TreeNode('VarSpec', 0, 'NONE')
     if hasattr(p[1], 'name') and  p[1].name == 'IdentifierList':
         zero_val = TreeNode('decimal_lit', 0, 'INT')
-        l1 = len(p[1].children)
-        if len(p) == 3:
-            expr_list = TreeNode('Expr_List', 0, 'NONE', 0, [zero_val] * l1)
-        elif len(p) == 4:
-            expr_list = p[3]
-        elif len(p) == 5:
-            expr_list = p[4]
-        l2 = len(expr_list.children)
-        p[0].TAC.append_TAC(expr_list.TAC)
-        p[0].TAC.append_TAC(p[1].TAC)
-        if l1 == l2:
-            for i in range(l1):
-                p[0].TAC.add_line(['=', p[1].children[i], expr_list.children[i].data, ''])
-        else:
-            print_error("Variable Declaration mismatch: " + str(l1) + " identifier(s) but " + str(l2) + " value(s)")
+        # l1 = len(p[1].children)
+        # if len(p) == 3:
+        #     expr_list = TreeNode('Expr_List', 0, 'NONE', 0, [zero_val] * l1)
+        # elif len(p) == 4:
+        #     expr_list = p[3]
+        # elif len(p) == 5:
+        #     expr_list = p[4]
+        # l2 = len(expr_list.children)
+        # p[0].TAC.append_TAC(expr_list.TAC)
+        # p[0].TAC.append_TAC(p[1].TAC)
+        # if l1 == l2:
+        #     for i in range(l1):
+        #         p[0].TAC.add_line(['=', p[1].children[i], expr_list.children[i].data, ''])
+        # else:
+        #     print_error("Variable Declaration mismatch: " + str(l1) + " identifier(s) but " + str(l2) + " value(s)")
 
     else:
-        if len(p) == 3:
-            expr = TreeNode('Expr_List', 0, 'NONE')
-        elif len(p) == 4:
+        p[1] = TreeNode('IDENTIFIER',p[1],'INT',1)
+        if p[1].isLvalue == 0:
+            print_error("Lvalue required")
+            return
+        else:
+            if symbol_table.add_identifier(p[1]) == False:
+                print_error("Unable to add to SymbolTable")
+                return
+        expr = TreeNode('Expr', 0, 'NONE')
+        if len(p) == 4:
             expr = p[3]
+            p[0].TAC.append_TAC(p[3].TAC)
+            p[0].TAC.add_line(['=', check_variable(p[1]), check_variable(expr), ''])
         elif len(p) == 5:
             expr = p[4]
-        p[0].TAC.add_line(['=', p[1], expr.data, ''])
+            p[0].TAC.append_TAC(p[4].TAC)
+            p[0].TAC.add_line(['=', check_variable(p[1]), check_variable(expr), ''])
     return
 
 def p_FunctionDecl(p):
@@ -490,7 +515,7 @@ def p_FunctionDecl(p):
     parsed.append(p.slice)
     p[0] = TreeNode('FunctionDecl', 0, 'INT')
     if len(p) == 5:
-        p[0].TAC.add_line(['func', p[2].data, '', ''])
+        p[0].TAC.add_line(['func', check_variable(p[2]), '', ''])
         p[0].TAC.append_TAC(p[4].TAC)
     else:
         p[0]
@@ -528,13 +553,13 @@ def p_IncDecStmt(p):
                   | Expression MINUS_MINUS
     '''
     parsed.append(p.slice)
-    one_val = TreeNode('decimal_lit', 1, 'INT')
+    one_val = TreeNode('IncDecStmt', 1, 'INT')
     p[0] = p[1]
     if p[1].isLvalue == 1:
         if p[2] == '++':
-            p[0].TAC.add_line(['+', p[1].data, p[1].data, one_val.data])
+            p[0].TAC.add_line(['+', check_variable(p[1]), check_variable(p[1]), one_val.data])
         else:
-            p[0].TAC.add_line(['-', p[1].data, p[1].data, one_val.data])
+            p[0].TAC.add_line(['-', check_variable(p[1]), check_variable(p[1]), one_val.data])
     else:
         print_error("Lvalue required")
     p[0].name = 'IncDecStmt'
@@ -556,23 +581,26 @@ def p_ShortVarDecl(p):
             for i in range(l1):
                 if p[1].children[i].isLvalue == 0:
                     print_error("Lvalue required")
+                    return
                 else:
                     if symbol_table.add_identifier(p[1].children[i]) == False:
                         print_error("Unable to add to SymbolTable")
-                    p[0].TAC.add_line([p[2], p[1].children[i].data, p[3].children[i].data, ''])
+                        return
+                    p[0].TAC.add_line([p[2], check_variable(p[1].children[i]), check_variable(p[3].children[i]), ''])
         else:
             print_error("Variable Declaration mismatch: " + str(l1) + " identifier(s) but " + str(l2) + " value(s)")
 
     elif p[1].name == 'Expression':
         if p[1].isLvalue == 0:
             print_error("Lvalue required")
-
+            return
         else:
             if symbol_table.add_identifier(p[1]) == False:
                 print_error("Unable to add to SymbolTable")
+                return
             p[0].TAC.append_TAC(p[3].TAC)
             p[0].TAC.append_TAC(p[1].TAC)
-            p[0].TAC.add_line([p[2], p[1].data, p[3].data, ''])
+            p[0].TAC.add_line([p[2], check_variable(p[1]), check_variable(p[3]), ''])
     return
 
 def p_Assignment(p):
@@ -584,19 +612,22 @@ def p_Assignment(p):
     if p[1].name == 'ExpressionList':
         l1 = len(p[1].children)
         l2 = len(p[3].children)
-        p[0].TAC.append_TAC(p[3].TAC)
-        p[0].TAC.append_TAC(p[1].TAC)
         if l1 == l2:
             for i in range(l1):
                 if p[1].children[i].isLvalue == 0:
                     print_error("Lvalue required")
+                    return
                 else:
-                    # if symbol_table.search_identifier(p[1].children[i].data) == False:
-                        # print_error("Variable " + p[1].children[i].data + " is undefined")
-                    # if symbol_table.search_identifier(p[3].children[i].data) == False:
-                        # print_error("Variable " + p[3].children[i].data + " is undefined")
-
-                    p[0].TAC.add_line([p[2].data, p[1].children[i].data, p[3].children[i].data, ''])
+                    p[1].children[i].print_node()
+                    if symbol_table.search_identifier(p[1].children[i].data) == False and p[1].children[i].data not in generated['temp']:
+                        print_error("Variable " + p[1].children[i].data + " is undefined")
+                        return
+                    if p[3].children[i].isLvalue == 1 and symbol_table.search_identifier(p[3].children[i].data) == False and p[3].children[i].data not in generated['temp']:
+                        print_error("Variable " + p[3].children[i].data + " is undefined")
+                        return
+                    p[0].TAC.append_TAC(p[3].TAC)
+                    p[0].TAC.append_TAC(p[1].TAC)
+                    p[0].TAC.add_line([p[2].data, check_variable(p[1].children[i]), check_variable(p[3].children[i]), ''])
         else:
             print_error("Variable Declaration mismatch: " + str(l1) + " identifier(s) but " + str(l2) + " value(s)")
 
@@ -605,15 +636,17 @@ def p_Assignment(p):
             print_error("Lvalue required")
             return
         else:
-            # if symbol_table.search_identifier(p[1].data) == False:
-                # print_error("Variable " + p[1].data + " is undefined")
-                # return
-            # if p[3].isLvalue == 1 and symbol_table.search_identifier(p[3].data) == False:
-                # print_error("Variable " + p[3].data + " is undefined")
-                # return
+            if symbol_table.search_identifier(p[1].data) == False and p[1].data not in generated['temp']:
+                print_error("Variable " + p[1].data + " is undefined")
+                return
+            if p[3].isLvalue == 1 and symbol_table.search_identifier(p[3].data) == False and p[3].data not in generated['temp']:
+                print_error("Variable " + p[3].data + " is undefined")
+                return
+            # print symbol_table.current_scope
             p[0].TAC.append_TAC(p[3].TAC)
             p[0].TAC.append_TAC(p[1].TAC)
-            p[0].TAC.add_line([p[2].data, p[1].data, p[3].data, ''])
+            p[0].TAC.add_line([p[2].data, check_variable(p[1]), check_variable(p[3]), ''])
+    return
 
 def p_assign_op(p):
     '''assign_op : EQ
@@ -642,7 +675,7 @@ def p_IfStmt(p):
         l1 = label_gen()
         p[0] = TreeNode('IfStmt', 0, 'INT')
         p[0].TAC.append_TAC(p[2].TAC)
-        p[0].TAC.add_line(['ifgotoeq', p[2].data, 0, l1])
+        p[0].TAC.add_line(['ifgotoeq', check_variable(p[2]), 0, l1])
         p[0].TAC.append_TAC(p[3].TAC)
         p[0].TAC.add_line(['label', l1, '', ''])
     if len(p) == 6:
@@ -650,7 +683,7 @@ def p_IfStmt(p):
         l2 = label_gen()
         p[0] = TreeNode('IfStmt', 0, 'INT')
         p[0].TAC.append_TAC(p[2].TAC)
-        p[0].TAC.add_line(['ifgotoeq', p[2].data, 0, l1])
+        p[0].TAC.add_line(['ifgotoeq', check_variable(p[2]), 0, l1])
         p[0].TAC.append_TAC(p[3].TAC)
         p[0].TAC.add_line(['goto', l2, '', ''])
         p[0].TAC.add_line(['label', l1, '', ''])
@@ -686,11 +719,11 @@ def p_ExprSwitchStmt(p):
         l2 = label_gen()
         p[0] = TreeNode('ExprSwitchStmt', 0, 'INT')
         p[0].TAC.append_TAC(p[2].TAC)
-        t1 = temp_gen()
-        p[0].TAC.add_line(['=', t1 , p[2].data, ''])
+        t1 = gen('temp')
+        p[0].TAC.add_line(['=', check_variable(t1) , check_variable(p[2]), ''])
         p[0].TAC.append_TAC(p[5].data)
         for i in range(len(p[5].children)):
-            p[0].TAC.add_line(['ifgotoeq', t1, p[5].children[i][0], p[5].children[i][1]])
+            p[0].TAC.add_line(['ifgotoeq', check_variable(t1), p[5].children[i][0], p[5].children[i][1]])
         for i in range(p[5].TAC.length()):
             if i in p[5].TAC.leaders[1:]:
                 p[0].TAC.add_line(['goto', l2, '', ''])
@@ -757,7 +790,7 @@ def p_ForStmt(p):
         l2 = label_gen()
         p[0].TAC.add_line(['label', l1, '', ''])
         p[0].TAC.append_TAC(p[2].TAC)
-        p[0].TAC.add_line(['ifgotoeq', p[2].data, 0, l2])
+        p[0].TAC.add_line(['ifgotoeq',check_variable(p[2]), 0, l2])
         p[0].TAC.append_TAC(p[3].TAC)
         p[0].TAC.add_line(['goto', l1, '', ''])
         p[0].TAC.add_line(['label', l2, '', ''])
@@ -823,9 +856,9 @@ def p_Expression(p):
     if len(p) == 2:
         p[0] = p[1]
     elif len(p) == 4:
-        p[0] = TreeNode('IDENTIFIER', temp_gen(), 'INT', 1, [], p[1].TAC)
+        p[0] = TreeNode('IDENTIFIER', gen('temp'), 'INT', 1, [], p[1].TAC)
         p[0].TAC.append_TAC(p[3].TAC)
-        p[0].TAC.add_line([p[2], p[0].data, p[1].data, p[3].data])
+        p[0].TAC.add_line([p[2],check_variable(p[0]), check_variable(p[1]), check_variable(p[3])])
     p[0].name = 'Expression'
     return
 
@@ -837,8 +870,8 @@ def p_UnaryExpr(p):
     if len(p) == 2:
         p[0] = p[1]
     elif len(p) == 3:
-        p[0] = TreeNode('IDENTIFIER', temp_gen(), 'INT', 1)
-        p[0].TAC.add_line([p[1].data, p[0].data, p[2].data, ''])
+        p[0] = TreeNode('IDENTIFIER', gen('temp'), 'INT', 1)
+        p[0].TAC.add_line([check_variable(p[1]), check_variable(p[0]), check_variable(p[2]), ''])
     p[0].name = 'UnaryExpr'
     return
 
@@ -871,7 +904,7 @@ def p_PrimaryExpr(p):
     elif len(p) == 3:
         if p[2].name == 'Arguments':
             p[0] = p[1]
-            p[0].TAC.add_line(['call', p[1].data, '', ''])
+            p[0].TAC.add_line(['call', check_variable(p[1]), '', ''])
     p[0].name = 'PrimaryExpr'
     return
 

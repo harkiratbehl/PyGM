@@ -59,7 +59,7 @@ class SymbolTable:
         while scope != None:
             for node in self.symbol_table[scope]['identifiers']:
                 if name == node.name:
-                    return True
+                    return scope + '_' + name
             scope = self.symbol_table[scope]['parent']
         return False
 
