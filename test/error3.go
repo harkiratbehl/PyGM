@@ -1,5 +1,5 @@
 package main
 
 func main(){
-	a,b,c:=1,2
+    a, b, c := 1, 2
 }

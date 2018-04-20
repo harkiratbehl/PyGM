@@ -35,7 +35,7 @@ def gen(s):
 
 def print_error(err):
     print "*** Error: " + err + "! ***"
-    # sys.exit(1)
+    sys.exit(1)
 
 def check_variable(TreeNode):
     # return 2 values. first is the name for the variable, second is 0 if variable not found
@@ -107,10 +107,10 @@ def p_SourceFile(p):
     three_addr_code = convert_tac(p[0].TAC)
     symbol_table.fill_next_use(three_addr_code)
     assembly_code = generate_assembly(three_addr_code,var_list,symbol_table)
-    p[0].TAC.print_code()
+    # p[0].TAC.print_code()
     # three_addr_code.print_code()
-    # assembly_code.print_code()
-    symbol_table.print_symbol_table()
+    assembly_code.print_code()
+    # symbol_table.print_symbol_table()
     return
 
 def p_ImportDeclList(p):
@@ -614,7 +614,7 @@ def p_FunctionDecl(p):
             if f.name == p[2].data:
                 noOfParams = len(f.parameters)
         p[0].TAC.add_line(['func', check_variable(p[2]), str(noOfParams), ''])
-        for child in p[3].children:
+        for child in reversed(p[3].children):
             p[0].TAC.add_line(['getparam', p[4].data + '_' + child.data, '', ''])
         p[0].TAC.add_line(['stack_push', '', '', ''])
 
@@ -711,6 +711,8 @@ def p_Assignment(p):
     if p[1].name == 'ExpressionList':
         l1 = len(p[1].children)
         l2 = len(p[3].children)
+        p[0].TAC.append_TAC(p[3].TAC)
+        p[0].TAC.append_TAC(p[1].TAC)
         if l1 == l2:
             for i in range(l1):
                 if p[1].children[i].isLvalue == 0:
@@ -723,8 +725,6 @@ def p_Assignment(p):
                     if p[3].children[i].isLvalue == 1 and symbol_table.search_identifier(p[3].children[i].data) == False and p[3].children[i].data not in generated['temp']:
                         print_error("Variable " + p[3].children[i].data + " is undefined")
                         return
-                    p[0].TAC.append_TAC(p[3].TAC)
-                    p[0].TAC.append_TAC(p[1].TAC)
                     p[0].TAC.add_line([p[2].data, check_variable(p[1].children[i]), check_variable(p[3].children[i]), ''])
         else:
             print_error("Variable Declaration mismatch: " + str(l1) + " identifier(s) but " + str(l2) + " value(s)")
@@ -1030,7 +1030,7 @@ def p_PrimaryExpr(p):
                 p[0].TAC.add_line(['putparam', check_variable(child), '', ''])
 
             if temp != p[2].data:
-                print_error('Function requires ' + str(temp) + ' parameters but ' + str(p[2].data) + ' have been supplied')
+                print_error('Function ' + funcName + ' requires ' + str(temp) + ' parameters but ' + str(p[2].data) + ' supplied')
             p[0].TAC.add_line(['call', check_variable(p[1]), str(p[2].data), ''])
             p[0].TAC.add_line(['return_value', check_variable(p[0]), '', ''])
     p[0].name = 'PrimaryExpr'
