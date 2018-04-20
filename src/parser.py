@@ -103,7 +103,7 @@ def p_SourceFile(p):
     three_addr_code = convert_tac(p[0].TAC)
     symbol_table.fill_next_use(three_addr_code)
     assembly_code = generate_assembly(three_addr_code,var_list,symbol_table)
-    # p[0].TAC.print_code()
+    p[0].TAC.print_code()
     # three_addr_code.print_code()
     # assembly_code.print_code()
     # symbol_table.print_symbol_table()
@@ -168,6 +168,7 @@ def p_Block(p):
     '''
     parsed.append(p.slice)
     p[0] = p[3]
+    p[0].data = p[2].data
     p[0].name = 'Block'
     return
 
@@ -176,6 +177,7 @@ def p_ScopeStart(p):
     '''
     parsed.append(p.slice)
     symbol_table.add_scope(gen('scope'))
+    p[0] = TreeNode('ScopeStart', symbol_table.current_scope, 'None')
     return
 
 def p_ScopeEnd(p):
@@ -590,18 +592,22 @@ def p_FunctionDecl(p):
     p[0] = TreeNode('FunctionDecl', 0, 'INT')
     symbol_table.add_function(p[2].data, p[3].input_type, p[3].children)
     if len(p) == 5:
-        p[0].TAC.add_line(['func', check_variable(p[2]), '', ''])
-        p[0].TAC.append_TAC(p[4].TAC)
-    else:
-        p[0]
+        noOfParams = 0
+        for f in symbol_table.symbol_table[symbol_table.current_scope]['functions']:
+            if f.name == p[2].data:
+                noOfParams = len(f.parameters)
+        p[0].TAC.add_line(['func', check_variable(p[2]), str(noOfParams), ''])
+        for child in p[3].children:
+            p[0].TAC.add_line(['getparam', p[4].data + '_' + child.data, '', ''])
 
+        p[0].TAC.append_TAC(p[4].TAC)
     return
 
 def p_FunctionName(p):
     '''FunctionName : IDENTIFIER
     '''
     parsed.append(p.slice)
-    p[0] = TreeNode('FunctionName', p[1], 'INT')
+    p[0] = TreeNode('FunctionName', p[1], 'INT', 1)
     return
 
 def p_FunctionBody(p):
@@ -996,7 +1002,7 @@ def p_PrimaryExpr(p):
                 if f.name == funcName:
                     temp = len(f.parameters)
             for child in p[2].children:
-                p[0].TAC.add_line(['param', check_variable(child), '', ''])
+                p[0].TAC.add_line(['putparam', check_variable(child), '', ''])
 
             if temp != p[2].data:
                 print_error('Function requires ' + str(temp) + ' parameters but ' + str(p[2].data) + ' have been supplied')

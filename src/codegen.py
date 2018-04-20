@@ -128,7 +128,7 @@ def translator(three_addr_instr,symbol_table):
         return 0
 
     if instr_op == 'func':
-        if dest == 'main':
+        if dest == 'scope_global_main':
             assembly_code.add_line('main:')
             start_main = 1
 
