@@ -111,6 +111,13 @@ def translator(three_addr_instr,symbol_table):
     src1 = three_addr_instr[3]
     src2 = three_addr_instr[4]
 
+    if instr_op == 'stack_push':
+        assembly_code.add_line('sw $ra, ($sp)')
+        assembly_code.add_line('sub $sp, $sp, 4')
+        assembly_code.add_line('sw $fp, ($sp)')
+        assembly_code.add_line('sub $sp, $sp, 4')
+        return 0
+
     if instr_op == 'label':
         assembly_code.add_line(dest + ':')
         return 0
@@ -139,10 +146,6 @@ def translator(three_addr_instr,symbol_table):
 
         if dest != 'main':
             assembly_code.add_line('func_' + dest + ':')
-            assembly_code.add_line('sub $sp, $sp, 4')
-            assembly_code.add_line('sw $fp, ($sp)')
-            assembly_code.add_line('sub $sp, $sp, 4')
-            assembly_code.add_line('sw $ra, ($sp)')
         return 0
 
     if instr_op == 'call':
@@ -153,6 +156,16 @@ def translator(three_addr_instr,symbol_table):
     # Using reg_dest
     if dest != '':
         reg_dest = registers.get_register(dest, symbol_table, line_no, assembly_code)
+
+    if instr_op == 'putparam':
+        assembly_code.add_line('sub $sp, $sp, 4')
+        assembly_code.add_line('sw ' + reg_dest + ', ($sp)')
+        return 0
+
+    if instr_op == 'getparam':
+        assembly_code.add_line('sw ' + reg_dest + ', ($sp)')
+        assembly_code.add_line('addiu $sp, $sp, 4')
+        return 0
 
     if instr_op == 'print_int':
         assembly_code.add_line('li $v0, 1')

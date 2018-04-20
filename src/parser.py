@@ -103,9 +103,9 @@ def p_SourceFile(p):
     three_addr_code = convert_tac(p[0].TAC)
     symbol_table.fill_next_use(three_addr_code)
     assembly_code = generate_assembly(three_addr_code,var_list,symbol_table)
-    p[0].TAC.print_code()
+    # p[0].TAC.print_code()
     # three_addr_code.print_code()
-    # assembly_code.print_code()
+    assembly_code.print_code()
     # symbol_table.print_symbol_table()
     return
 
@@ -599,6 +599,7 @@ def p_FunctionDecl(p):
         p[0].TAC.add_line(['func', check_variable(p[2]), str(noOfParams), ''])
         for child in p[3].children:
             p[0].TAC.add_line(['getparam', p[4].data + '_' + child.data, '', ''])
+        p[0].TAC.add_line(['stack_push', '', '', ''])
 
         p[0].TAC.append_TAC(p[4].TAC)
     return
