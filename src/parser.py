@@ -799,11 +799,12 @@ def p_ExprSwitchStmt(p):
         l2 = gen('label')
         p[0] = TreeNode('ExprSwitchStmt', 0, 'INT')
         p[0].TAC.append_TAC(p[2].TAC)
-        t1 = gen('temp')
+        t1 = TreeNode('IDENTIFIER', gen('temp'), 'INT', 1)
         p[0].TAC.add_line(['=', check_variable(t1) , check_variable(p[2]), ''])
         p[0].TAC.append_TAC(p[5].data)
         for i in range(len(p[5].children)):
             p[0].TAC.add_line(['ifgotoeq', check_variable(t1), p[5].children[i][0], p[5].children[i][1]])
+        p[0].TAC.add_line(['goto', l2, '', ''])
         for i in range(p[5].TAC.length()):
             if i in p[5].TAC.leaders[1:]:
                 p[0].TAC.add_line(['goto', l2, '', ''])
