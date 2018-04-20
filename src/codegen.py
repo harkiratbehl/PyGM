@@ -90,7 +90,7 @@ def generate_assembly(three_addr_code,var_list,symbol_table):
         three_addr_instr = three_addr_code.code[i]
         if translator(three_addr_instr,symbol_table) != 0:
             translator_error = 1
-            print('Unidentified operator in the above line(s)' + three_addr_instr)
+            print('Unidentified operator in this Three Address Instruction: ' + ", ".join(three_addr_instr))
             return
 
     if start_main == 1:

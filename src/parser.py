@@ -36,16 +36,21 @@ def gen(s):
 
 def print_error(err):
     print "*** Error: " + err + "! ***"
+    sys.exit(1)
 
 def check_variable(TreeNode):
     # return 2 values. first is the name for the variable, second is 0 if variable not found
     if TreeNode.isLvalue == 1:
         if TreeNode.data not in generated['temp']:
-            if symbol_table.search_identifier(TreeNode.data) == False:
-                print_error("Variable " + TreeNode.data + " is undefined")
-                return TreeNode.data
+            name = symbol_table.search_identifier(TreeNode.data)
+            if name == False:
+                name = symbol_table.search_function(TreeNode.data)
+                if name == False:
+                    print_error("Variable " + TreeNode.data + " is undefined")
+                    return TreeNode.data
+                else:
+                    return name
             else:
-                name = symbol_table.search_identifier(TreeNode.data)
                 newNode = SymbolTableNode(name, TreeNode.input_type)
                 symbol_table.add_var(newNode)
                 return name
@@ -94,19 +99,19 @@ def p_SourceFile(p):
     parsed.append(p.slice)
     # TODO: Ignoring package name and Imports for now
     p[0] = p[5]
-    p[0].TAC.print_code()
     var_list = symbol_table.make_var_list()
     three_addr_code = convert_tac(p[0].TAC)
     symbol_table.fill_next_use(three_addr_code)
-    # three_addr_code.print_code()
     assembly_code = generate_assembly(three_addr_code,var_list,symbol_table)
+    # p[0].TAC.print_code()
+    # three_addr_code.print_code()
     # assembly_code.print_code()
     # symbol_table.print_symbol_table()
     return
 
 def p_ImportDeclList(p):
     '''ImportDeclList : ImportDecl SEMICOLON ImportDeclList
-                | empty
+                      | empty
     '''
     parsed.append(p.slice)
     # TODO: Ignoring Imports for now
@@ -126,8 +131,8 @@ def p_TopLevelDeclList(p):
     return
 
 def p_TopLevelDecl(p):
-    '''TopLevelDecl  : Declaration
-                     | FunctionDecl
+    '''TopLevelDecl : Declaration
+                    | FunctionDecl
     '''
     parsed.append(p.slice)
     p[0] = p[1]
@@ -212,7 +217,7 @@ def p_Statement(p):
 
 def p_PrintIntStmt(p):
     '''PrintIntStmt : PRINTLN LROUND IDENTIFIER RROUND
-                 | PRINTLN LROUND BasicLit RROUND
+                    | PRINTLN LROUND BasicLit RROUND
     '''
     if hasattr(p[3], 'name') and p[3].name == 'BasicLit':
         p[0] = p[3]
@@ -262,7 +267,8 @@ def p_IdentifierList(p):
     '''IdentifierList : IDENTIFIER COMMA IdentifierBotList
     '''
     parsed.append(p.slice)
-    p[0] = TreeNode('IdentifierList', 0, 'INT', 0, [p[1]] + p[3].children, p[3].TAC)
+    node = TreeNode('IDENTIFIER', p[1], 'INT', 1)
+    p[0] = TreeNode('IdentifierList', 0, 'None', 0, [node] + p[3].children, p[3].TAC)
     return
 
 def p_IdentifierBotList(p):
@@ -271,10 +277,11 @@ def p_IdentifierBotList(p):
     '''
     parsed.append(p.slice)
     if len(p) == 2:
-        # node = TreeNode('IDENTIFIER', p[1], 'INT', )
-        p[0] = TreeNode('IdentifierBotList', 0, 'INT', 0, [p[1]])
+        node = TreeNode('IDENTIFIER', p[1], 'INT', 1)
+        p[0] = TreeNode('IdentifierBotList', 0, 'None', 0, [node])
     elif len(p) == 4:
-        p[0] = TreeNode('IdentifierBotList', 0, 'INT', 0, [p[1]] + p[3].children, p[3].TAC)
+        node = TreeNode('IDENTIFIER', p[1], 'INT', 1)
+        p[0] = TreeNode('IdentifierBotList', 0, 'None', 0, [node] + p[3].children, p[3].TAC)
     return
 
 
@@ -432,6 +439,7 @@ def p_Signature(p):
     parsed.append(p.slice)
     if len(p) == 2:
         p[0] = p[1]
+        p[0].input_type = TreeNode('Result', 0, 'None')
     else:
         p[0] = p[1]
         p[0].input_type = p[2]
@@ -443,8 +451,11 @@ def p_Result(p):
               | Type
     '''
     parsed.append(p.slice)
-    p[0] = p[1]
-    p[0].name = 'Result'
+    if p[1].name == 'Type':
+        p[0] = TreeNode('Result', 1, 'None', 0, [p[1]])
+    else:
+        p[0] = p[1]
+        p[0].name = 'Result'
     return
 
 def p_Parameters(p):
@@ -465,9 +476,10 @@ def p_ParameterList(p):
     '''
     parsed.append(p.slice)
     if len(p) == 2:
-        p[0] = TreeNode('ParameterList', 1, 'None', 0, [p[1]], p[1].TAC)
+        p[0] = p[1]
+        p[0].name = 'ParameterList'
     elif len(p) == 4:
-        p[0] = TreeNode('ParameterList', p[1].data + 1, 'None', 1, [p[1]] + p[3].children, p[1].TAC)
+        p[0] = TreeNode('ParameterList', p[1].data + p[3].data, 'None', 0, p[1].children + p[3].children, p[1].TAC)
         p[0].TAC.append_TAC(p[3].TAC)
     return
 
@@ -477,14 +489,20 @@ def p_ParameterDecl(p):
                      | Type
     '''
     parsed.append(p.slice)
+    p[0] = TreeNode('ParameterDecl', 0, 'None')
     if len(p) == 3:
         if hasattr(p[1], 'name') and  p[1].name == 'IdentifierList':
-            # TODO
-            p[1].print_node()
+            for node in p[1].children:
+                p[0].data += 1
+                node.input_type = p[2].data
+                p[0].children += [node]
         else:
             node = TreeNode('IDENTIFIER', p[1], p[2].data, 1)
-            p[0] = node
-        p[0].name = 'ParameterDecl'
+            p[0].data += 1
+            p[0].children += [node]
+    else:
+        p[0].data += 1
+        p[0].children += [p[1]]
     return
 
 def p_VarDecl(p):
@@ -566,10 +584,9 @@ def p_FunctionDecl(p):
                     | FUNC FunctionName Signature FunctionBody
     '''
     parsed.append(p.slice)
-    if p[3].input_type == 'None':
-        p[0]
-    else:
-        p[3].input_type.print_node()
+    # print "Func", p[2].data
+    # p[3].print_node()
+    # p[3].input_type.print_node()
     p[0] = TreeNode('FunctionDecl', 0, 'INT')
     symbol_table.add_function(p[2].data, p[3].input_type, p[3].children)
     if len(p) == 5:
@@ -963,14 +980,28 @@ def p_PrimaryExpr(p):
     parsed.append(p.slice)
     if len(p) == 2:
         if p.slice[1].type == 'IDENTIFIER':
-            p[0] = TreeNode('IDENTIFIER', p[1], 'INT', 1, [])
+            p[0] = TreeNode('IDENTIFIER', p[1], 'INT', 1)
         elif p[1].name == 'Operand':
             p[0] = p[1]
     elif len(p) == 3:
-        print p.slice
         if p[2].name == 'Arguments':
-            p[0] = p[1]
+            p[0] = TreeNode('IDENTIFIER', gen('temp'), 'INT', 1)
+            p[0].TAC.append_TAC(p[1].TAC)
+
+            func = check_variable(p[1]).split("_")
+            scope, funcName =  "_".join(func[:2]), "_".join(func[2:])
+
+            temp = 0
+            for f in symbol_table.symbol_table[scope]['functions']:
+                if f.name == funcName:
+                    temp = len(f.parameters)
+            for child in p[2].children:
+                p[0].TAC.add_line(['param', check_variable(child), '', ''])
+
+            if temp != p[2].data:
+                print_error('Function requires ' + str(temp) + ' parameters but ' + str(p[2].data) + ' have been supplied')
             p[0].TAC.add_line(['call', check_variable(p[1]), str(p[2].data), ''])
+            p[0].TAC.add_line(['return_value', check_variable(p[0]), '', ''])
     p[0].name = 'PrimaryExpr'
     return
 

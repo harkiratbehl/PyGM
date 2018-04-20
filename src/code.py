@@ -64,7 +64,6 @@ class TreeNode:
             self.TAC = TAC
 
     def print_node(self):
-        import time
         print "Name:", self.name, "Data:", self.data, "Type:", self.input_type, "Is L-Value?", self.isLvalue
         if len(self.children) != 0:
             print "Children:"

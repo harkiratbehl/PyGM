@@ -15,7 +15,11 @@ class SymbolTableNode:
             self.parameters = parameters
 
     def print_node(self):
-        print self.name, self.type_name, self.parameters
+        print "Name:", self.name, "Type:", self.type_name
+        if len(self.parameters) != 0:
+            print "Parameters:"
+            for p in self.parameters:
+                p.print_node()
 
 class SymbolTable:
     """Defines a class for SymbolTable"""
@@ -23,9 +27,9 @@ class SymbolTable:
     def __init__(self):
         """Initializes the SymbolTable"""
         self.symbol_table = {
-            'global': {
-                'name': 'global',
-                'type': 'global',
+            'scope_global': {
+                'name': 'scope_global',
+                'type': 'scope_global',
                 'parent': None,
                 'identifiers': [],
                 'functions': [],
@@ -35,7 +39,7 @@ class SymbolTable:
         }
         self.var_list = []
         self.next_use = dict()
-        self.current_scope = 'global'
+        self.current_scope = 'scope_global'
 
     def start_scope(self, scope):
         """Starts a scope"""
@@ -67,7 +71,14 @@ class SymbolTable:
         return True
 
     def add_function(self, name, return_type, parameters):
-        newNode = SymbolTableNode(name, return_type, parameters)
+        ret = []
+        for t in return_type.children:
+            ret += [t.data]
+        params = []
+        for p in parameters:
+            params += [SymbolTableNode(p.data, p.input_type)]
+
+        newNode = SymbolTableNode(name, ret, params)
         self.symbol_table[self.current_scope]['functions'] += [newNode]
         return True
 
@@ -88,16 +99,34 @@ class SymbolTable:
             scope = self.symbol_table[scope]['parent']
         return False
 
+    def search_function(self, name):
+        scope = self.current_scope
+        while scope != None:
+            for node in self.symbol_table[scope]['functions']:
+                if name == node.name:
+                    return scope + '_' + name
+            scope = self.symbol_table[scope]['parent']
+        return False
+
     def print_symbol_table(self):
         """Prints the symbol table"""
         print ''
         print 'SYMBOL TABLE'
         for y in self.symbol_table.keys():
-            print "scope", y, self.symbol_table[y]['parent']
-            for x in self.symbol_table[y]['identifiers']:
-                x.print_node()
-            for x in self.symbol_table[y]['allvars']:
-                x.print_node()
+            print y, "with parent", self.symbol_table[y]['parent']
+            if len(self.symbol_table[y]['identifiers']) != 0:
+                print "Identifiers:"
+                for x in self.symbol_table[y]['identifiers']:
+                    x.print_node()
+            if len(self.symbol_table[y]['functions']) != 0:
+                print "Functions:"
+                for x in self.symbol_table[y]['functions']:
+                    x.print_node()
+            if len(self.symbol_table[y]['allvars']) != 0:
+                print "Allvars:"
+                for x in self.symbol_table[y]['allvars']:
+                    x.print_node()
+            print ""
 
     def make_var_list(self):
         for y in self.symbol_table.keys():
