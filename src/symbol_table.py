@@ -27,9 +27,9 @@ class SymbolTable:
     def __init__(self):
         """Initializes the SymbolTable"""
         self.symbol_table = {
-            'scope_global': {
-                'name': 'scope_global',
-                'type': 'scope_global',
+            'scope_0': {
+                'name': 'scope_0',
+                'type': 'scope_0',
                 'parent': None,
                 'identifiers': [],
                 'functions': [],
@@ -39,7 +39,7 @@ class SymbolTable:
         }
         self.var_list = []
         self.next_use = dict()
-        self.current_scope = 'scope_global'
+        self.current_scope = 'scope_0'
 
     def start_scope(self, scope):
         """Starts a scope"""
@@ -49,8 +49,7 @@ class SymbolTable:
         """Ends a scope"""
         self.current_scope = self.symbol_table[self.current_scope]['parent']
 
-    def add_scope(self, scope_name):
-        """Adds a new scope to the SymbolTable"""
+    def new_scope(self, scope_name):
         self.symbol_table[scope_name] = {
             'name': scope_name,
             'type': scope_name,
@@ -60,14 +59,21 @@ class SymbolTable:
             'allvars': [],
             'nextuse': dict()
         }
+
+    def add_scope(self, scope_name):
+        """Adds a new scope to the SymbolTable"""
+        if scope_name not in self.symbol_table.keys():
+            self.new_scope(scope_name)
         self.start_scope(scope_name)
 
-    def add_identifier(self, TreeNode):
-        for node in self.symbol_table[self.current_scope]['identifiers']:
+    def add_identifier(self, TreeNode, scope = None):
+        if scope is None:
+            scope = self.current_scope
+        for node in self.symbol_table[scope]['identifiers']:
             if TreeNode.data == node.name:
                 return True
         newNode = SymbolTableNode(TreeNode.data, TreeNode.input_type)
-        self.symbol_table[self.current_scope]['identifiers'] += [newNode]
+        self.symbol_table[scope]['identifiers'] += [newNode]
         return True
 
     def add_function(self, name, return_type, parameters):
@@ -82,12 +88,14 @@ class SymbolTable:
         self.symbol_table[self.current_scope]['functions'] += [newNode]
         return True
 
-    def add_var(self, TreeNode):
-        for node in self.symbol_table[self.current_scope]['allvars']:
+    def add_var(self, TreeNode, scope = None):
+        if scope is None:
+            scope = self.current_scope
+        for node in self.symbol_table[scope]['allvars']:
             if TreeNode.name == node.name:
                 return True
         # newNode = SymbolTableNode(TreeNode.name, TreeNode.type_name)
-        self.symbol_table[self.current_scope]['allvars'] += [TreeNode]
+        self.symbol_table[scope]['allvars'] += [TreeNode]
         return True
 
     def search_identifier(self, name):

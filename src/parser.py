@@ -20,17 +20,16 @@ from codegen import generate_assembly
 three_addr_code = ThreeAddressCode()
 assembly_code = Code()
 
-
 parsed = []
 symbol_table = SymbolTable()
 var_list = []
 
-generated = {'temp': [], 'scope': [], 'label': []}
+generated = {'temp': [], 'scope': ['scope_0'], 'label': []}
 
 def gen(s):
-    temp = s + '_' + str(randint(0, sys.maxint))
     if s not in generated.keys():
         generated[s] = []
+    temp = s + '_' + str(len(generated[s]))
     generated[s] += [temp]
     return temp
 
@@ -103,7 +102,7 @@ def p_SourceFile(p):
     three_addr_code = convert_tac(p[0].TAC)
     symbol_table.fill_next_use(three_addr_code)
     assembly_code = generate_assembly(three_addr_code,var_list,symbol_table)
-    # p[0].TAC.print_code()
+    p[0].TAC.print_code()
     # three_addr_code.print_code()
     assembly_code.print_code()
     # symbol_table.print_symbol_table()
@@ -439,13 +438,20 @@ def p_Signature(p):
                  | Parameters Result
     '''
     parsed.append(p.slice)
+    p[0] = p[1]
+    p[0].name = 'Signature'
+    s = 'scope_' + str(len(generated['scope']))
+    symbol_table.new_scope(s)
+    for child in p[1].children:
+        symbol_table.add_identifier(child, s)
+        newNode = SymbolTableNode(s + '_' + child.data, child.input_type)
+        symbol_table.add_var(newNode, s)
+    # symbol_table.print_symbol_table()
+
     if len(p) == 2:
-        p[0] = p[1]
         p[0].input_type = TreeNode('Result', 0, 'None')
     else:
-        p[0] = p[1]
         p[0].input_type = p[2]
-    p[0].name = 'Signature'
     return
 
 def p_Result(p):
@@ -586,10 +592,10 @@ def p_FunctionDecl(p):
                     | FUNC FunctionName Signature FunctionBody
     '''
     parsed.append(p.slice)
-    # print "Func", p[2].data
-    # p[3].print_node()
-    # p[3].input_type.print_node()
+    # symbol_table.print_symbol_table()
     p[0] = TreeNode('FunctionDecl', 0, 'INT')
+    # print symbol_table.current_scope
+    # p[4].TAC.print_code()
     symbol_table.add_function(p[2].data, p[3].input_type, p[3].children)
     if len(p) == 5:
         noOfParams = 0
@@ -1003,6 +1009,8 @@ def p_PrimaryExpr(p):
             for f in symbol_table.symbol_table[scope]['functions']:
                 if f.name == funcName:
                     temp = len(f.parameters)
+
+            # p[2].print_node()
             for child in p[2].children:
                 p[0].TAC.add_line(['putparam', check_variable(child), '', ''])
 
@@ -1117,13 +1125,11 @@ def p_Arguments(p):
         p[0] = TreeNode('Arguments', 0, 'None')
     if len(p) == 4:
         if p[2].name == 'Expression':
-            p[0] = p[2]
-            p[2].name = 'Arguments'
-            p[2].data = 1
+            p[0] = TreeNode('Arguments', 1, 'None', 0, [p[2]])
         if p[2].name == 'ExpressionList':
             p[0] = p[2]
-            p[2].name = 'Arguments'
-            p[2].data = len(p[2].children)
+            p[0].name = 'Arguments'
+            p[0].data = len(p[2].children)
     return
 
 def p_string_lit(p):

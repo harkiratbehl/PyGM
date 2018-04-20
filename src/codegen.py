@@ -135,16 +135,16 @@ def translator(three_addr_instr,symbol_table):
         return 0
 
     if instr_op == 'func':
-        if dest == 'scope_global_main':
+        if dest == 'scope_0_main':
             assembly_code.add_line('main:')
             start_main = 1
 
-        if dest != 'main' and start_main == 1:
+        if dest != 'scope_0_main' and start_main == 1:
             assembly_code.add_line('li $v0, 10')
             assembly_code.add_line('syscall')
             start_main = 0
 
-        if dest != 'main':
+        if dest != 'scope_0_main':
             assembly_code.add_line('func_' + dest + ':')
         return 0
 
@@ -163,7 +163,7 @@ def translator(three_addr_instr,symbol_table):
         return 0
 
     if instr_op == 'getparam':
-        assembly_code.add_line('sw ' + reg_dest + ', ($sp)')
+        assembly_code.add_line('lw ' + reg_dest + ', ($sp)')
         assembly_code.add_line('addiu $sp, $sp, 4')
         return 0
 
