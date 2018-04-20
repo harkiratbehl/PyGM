@@ -83,7 +83,7 @@ def generate_assembly(three_addr_code,var_list,symbol_table):
                 line = var.name + ':\t.asciiz \"' + var.parameters[0].name + '\"'
         else:
             space = 4*int(var.size)
-            line = var.name + ':\t.space ' + str(space) 
+            line = var.name + ':\t.space 0:' + str(space) 
         assembly_code.add_line(line)
 
     # functions
@@ -120,6 +120,41 @@ def translator(three_addr_instr,symbol_table):
     src1 = three_addr_instr[3]
     src2 = three_addr_instr[4]
 
+    reg_temp1, reg_idx1, reg_idx2, reg_idx3 = '', '', '', ''
+
+    if '[' in dest:
+        d1 = dest.find('[')
+        d2 = dest.find(']')
+        var1 = dest[:d1]
+        idx1 = dest[d1+1:d2]
+        assembly_code.add_line('sub $sp, $sp, 4')
+        reg_idx1 = registers.get_register(idx1, symbol_table, line_no, assembly_code)
+        assembly_code.add_line('sll ' + reg_idx1 + ', ' + reg_idx1 + ', 2')
+        reg_temp2 = registers.get_register('0', symbol_table, line_no, assembly_code)
+        assembly_code.add_line('la ' + reg_temp1 + ', ' + var1)
+
+    if '[' in src1:
+        d1 = src1.find('[')
+        d2 = src1.find(']')
+        var2 = src1[:d1]
+        idx2 = src1[d1+1:d2]
+        reg_idx2 = registers.get_register(idx2, symbol_table, line_no, assembly_code)
+        assembly_code.add_line('sll ' + reg_idx2 + ', ' + reg_idx2 + ', 2')
+        reg_temp2 = registers.get_register('0', symbol_table, line_no, assembly_code)
+        assembly_code.add_line('la ' + reg_temp2 + ', ' + var2)
+        assembly_code.add_line('lw ' + reg_idx2 + ', ' + reg_idx2 + ', (' + reg_temp2 + ')')
+
+    if '[' in src2:
+        d1 = src2.find('[')
+        d2 = src2.find(']')
+        var3 = src2[:d1]
+        idx3 = src2[d1+1:d2]
+        reg_idx3 = registers.get_register(idx2, symbol_table, line_no, assembly_code)
+        assembly_code.add_line('sll ' + reg_idx3 + ', ' + reg_idx3 + ', 2')
+        reg_temp3 = registers.get_register('0', symbol_table, line_no, assembly_code)
+        assembly_code.add_line('la ' + reg_temp3 + ', ' + var3)
+        assembly_code.add_line('lw ' + reg_idx3 + ', ' + reg_idx3 + ', (' + reg_temp3 + ')')
+
     #### if variable has [] then take that from memory location
 
     if instr_op == 'stack_push':
@@ -127,28 +162,40 @@ def translator(three_addr_instr,symbol_table):
         assembly_code.add_line('sw $ra, ($sp)')
         assembly_code.add_line('sub $sp, $sp, 4')
         assembly_code.add_line('sw $fp, ($sp)')
+        # if reg_idx1 != '':
+            # assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'label':
         assembly_code.add_line(dest + ':')
+        # if reg_idx1 != '':
+            # assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'goto':
         assembly_code.add_line('j ' + dest)
+        # if reg_idx1 != '':
+            # assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'break':
         assembly_code.add_line('j ' + dest)
+        # if reg_idx1 != '':
+            # assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'continue':
         assembly_code.add_line('j ' + dest)
+        # if reg_idx1 != '':
+            # assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'print_str':
         assembly_code.add_line('la $a0, ' + dest)
         assembly_code.add_line('li $v0, 4')
         assembly_code.add_line('syscall')
+        # if reg_idx1 != '':
+            # assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'func':
@@ -163,6 +210,8 @@ def translator(three_addr_instr,symbol_table):
 
         if dest != 'scope_0_main':
             assembly_code.add_line('func_' + dest + ':')
+        # if reg_idx1 != '':
+            # assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'call':
@@ -171,6 +220,8 @@ def translator(three_addr_instr,symbol_table):
             assembly_code.add_line('lw ' + r + ', ($sp)')
             assembly_code.add_line('addiu $sp, $sp, 4')
         start_param = 0
+        # if reg_idx1 != '':
+            # assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
 
@@ -186,11 +237,15 @@ def translator(three_addr_instr,symbol_table):
             start_param = 1
         assembly_code.add_line('sub $sp, $sp, 4')
         assembly_code.add_line('sw ' + reg_dest + ', ($sp)')
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'getparam':
         assembly_code.add_line('lw ' + reg_dest + ', ($sp)')
         assembly_code.add_line('addiu $sp, $sp, 4')
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'print_int':
@@ -200,12 +255,16 @@ def translator(three_addr_instr,symbol_table):
         assembly_code.add_line('li $v0, 4')
         assembly_code.add_line('la $a0, newline')
         assembly_code.add_line('syscall')
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'scan_int':
         assembly_code.add_line('li $v0, 5')
         assembly_code.add_line('syscall')
         assembly_code.add_line('move ' + reg_dest + ', $v0')
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'return':
@@ -217,106 +276,155 @@ def translator(three_addr_instr,symbol_table):
         assembly_code.add_line('lw $ra, ($sp)')
         assembly_code.add_line('addiu $sp, $sp, 4')
         assembly_code.add_line('jr $ra')
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'return_value':
         assembly_code.add_line('move ' + reg_dest + ', $v0')
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'get_val_at_add':
         # write src1 to address dest
         assembly_code.add_line('la ' + reg_dest + ', ' + src1)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
 
     # Using reg_src1
     if src1 != '':
-        reg_src1 = registers.get_register(src1, symbol_table, line_no, assembly_code)
+        if reg_idx2 == '':
+            reg_src1 = registers.get_register(src1, symbol_table, line_no, assembly_code)
+        else:
+            reg_src1 = reg_idx2
 
     if instr_op == '+=':
         assembly_code.add_line('add ' + reg_dest + ', ' + reg_dest + ', ' + reg_src1)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '-=':
         assembly_code.add_line('sub ' + reg_dest + ', ' + reg_dest + ', ' + reg_src1)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '*=':
         assembly_code.add_line('mult ' + reg_dest + ', ' + reg_src1)
         assembly_code.add_line('mflo ' + reg_dest)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '/=':
         assembly_code.add_line('div ' + reg_dest + ', ' + reg_src1)
         assembly_code.add_line('mflo ' + reg_dest) # HI
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '%=':
         assembly_code.add_line('div ' + reg_dest + ', ' + reg_src1)
         assembly_code.add_line('mfhi ' + reg_dest) # HI
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '<<=':
         assembly_code.add_line('sllv ' + reg_dest + ', ' + reg_dest + ', ' + reg_src1)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '>>=':
         assembly_code.add_line('srlv ' + reg_dest + ', ' + reg_dest + ', ' + reg_src1)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '=':
         assembly_code.add_line('move ' + reg_dest + ', ' + reg_src1)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == ':=':
         assembly_code.add_line('move ' + reg_dest + ', ' + reg_src1)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'ifgotoeq':
         assembly_code.add_line('beq ' + reg_dest + ', ' + reg_src1 + ', ' + src2)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'ifgotoneq':
         assembly_code.add_line('bne ' + reg_dest + ', ' + reg_src1 + ', ' + src2)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'ifgotolt':
         assembly_code.add_line('blt ' + reg_dest + ', ' + reg_src1 + ', ' + src2)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'ifgotolteq':
         assembly_code.add_line('ble ' + reg_dest + ', ' + reg_src1 + ', ' + src2)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'ifgotogt':
         assembly_code.add_line('bgt ' + reg_dest + ', ' + reg_src1 + ', ' + src2)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'ifgotogteq':
         assembly_code.add_line('bge ' + reg_dest + ', ' + reg_src1 + ', ' + src2)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'read_add':
         # read from src1 address to dest
         # Similar to * operator or dereferencing
         assembly_code.add_line('lw ' + reg_dest + ', ' + '0(' + reg_src1+ ')')
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == 'write_add':
         # write src1 to address dest
         assembly_code.add_line('sw ' + reg_dest + ', ' + '0(' + reg_src1+ ')')
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
 
     # Using reg_src2
     if src2 != '':
         reg_src2 = registers.get_register(src2, symbol_table, line_no, assembly_code)
+        if reg_idx3 == '':
+            reg_src2 = registers.get_register(src2, symbol_table, line_no, assembly_code)
+        else:
+            reg_src2 = reg_idx3
 
     if instr_op == '+':
         if src2 != '':
             assembly_code.add_line('add ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
         else:
             assembly_code.add_line('move ' + reg_dest + ', ' + reg_src1)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '-':
@@ -326,70 +434,102 @@ def translator(three_addr_instr,symbol_table):
             src1 = '-' + src1
             reg_src1 = registers.get_register(src1, symbol_table, line_no, assembly_code)
             assembly_code.add_line('move ' + reg_dest + ', ' + reg_src1)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '*':
         assembly_code.add_line('mult ' + reg_src1 + ', ' + reg_src2)
         assembly_code.add_line('mflo ' + reg_dest) # LO 32
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '/':
         assembly_code.add_line('div ' + reg_src1 + ', ' + reg_src2)
         assembly_code.add_line('mflo ' + reg_dest) # LO
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '%':
         assembly_code.add_line('div ' + reg_src1 + ', ' + reg_src2)
         assembly_code.add_line('mfhi ' + reg_dest) # HI
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '&&':
         assembly_code.add_line('and ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '||':
         assembly_code.add_line('or ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '^':
         assembly_code.add_line('xor ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '!=':
         assembly_code.add_line('sne ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '<=':
         assembly_code.add_line('sle ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '>=':
         assembly_code.add_line('sge ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '==':
         assembly_code.add_line('seq ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '<':
         assembly_code.add_line('slt ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '>':
         assembly_code.add_line('sgt ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '!':
         assembly_code.add_line('li ' + reg_src1 + ', 1')
         assembly_code.add_line('xor ' + reg_dest + ', ' + reg_src2 + ', ' + reg_src1)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '<<':
         assembly_code.add_line('sllv ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     if instr_op == '>>':
         assembly_code.add_line('srlv ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        if reg_idx1 != '':
+            assembly_code.add_line('sw ' + reg_dest + ', ' + reg_idx1 + '(' + reg_temp1 + ')')
         return 0
 
     return 1
