@@ -7,5 +7,12 @@ func main() {
         Println(i)
         a := 3
         Println(a)
+        if a < 10 {
+            b := i + 2
+            i := b + 3
+            Println(b)
+            Println(i)
+            Println("Wow, Scoping works!\n")
+        }
     }
 }

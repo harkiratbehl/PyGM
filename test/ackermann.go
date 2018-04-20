@@ -14,5 +14,6 @@ func ackermann(m int, n int) int {
 
 func main() {
     x := ackermann(3, 4)
+    Println("ackermann with input 3 and 4 = ")
     Println(x)
 }
