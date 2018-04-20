@@ -274,11 +274,19 @@ def translator(three_addr_instr,symbol_table):
         reg_src2 = registers.get_register(src2, symbol_table, line_no, assembly_code)
 
     if instr_op == '+':
-        assembly_code.add_line('add ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        if src2 != '':
+            assembly_code.add_line('add ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        else:
+            assembly_code.add_line('move ' + reg_dest + ', ' + reg_src1)
         return 0
 
     if instr_op == '-':
-        assembly_code.add_line('sub ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        if src2 != '':
+            assembly_code.add_line('sub ' + reg_dest + ', ' + reg_src1 + ', ' + reg_src2)
+        else:
+            src1 = '-' + src1
+            reg_src1 = registers.get_register(src1, symbol_table, line_no, assembly_code)
+            assembly_code.add_line('move ' + reg_dest + ', ' + reg_src1)
         return 0
 
     if instr_op == '*':
