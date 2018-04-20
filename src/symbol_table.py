@@ -5,7 +5,7 @@ from numpy import ones
 class SymbolTableNode:
     """Defines a class SymbolTableNode which stores the nodes in the SymbolTable"""
 
-    def __init__(self, name, type_name, parameters = None):
+    def __init__(self, name, type_name, parameters = None, size = None):
         """Initializes the Node"""
         self.name = name
         self.type_name = type_name
@@ -14,8 +14,13 @@ class SymbolTableNode:
         else:
             self.parameters = parameters
 
+        if size is None:
+            self.size = []
+        else:
+            self.size = size
+
     def print_node(self):
-        print "Name:", self.name, "Type:", self.type_name
+        print "Name:", self.name, "Type:", self.type_name, "Size:", self.size
         if len(self.parameters) != 0:
             print "Parameters:"
             for p in self.parameters:
@@ -66,13 +71,13 @@ class SymbolTable:
             self.new_scope(scope_name)
         self.start_scope(scope_name)
 
-    def add_identifier(self, TreeNode, scope = None):
+    def add_identifier(self, TreeNode, scope = None, size = None):
         if scope is None:
             scope = self.current_scope
         for node in self.symbol_table[scope]['identifiers']:
             if TreeNode.data == node.name:
                 return True
-        newNode = SymbolTableNode(TreeNode.data, TreeNode.input_type)
+        newNode = SymbolTableNode(TreeNode.data, TreeNode.input_type,size = size)
         self.symbol_table[scope]['identifiers'] += [newNode]
         return True
 

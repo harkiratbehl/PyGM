@@ -102,10 +102,10 @@ def p_SourceFile(p):
     three_addr_code = convert_tac(p[0].TAC)
     symbol_table.fill_next_use(three_addr_code)
     assembly_code = generate_assembly(three_addr_code,var_list,symbol_table)
-    p[0].TAC.print_code()
+    # p[0].TAC.print_code()
     # three_addr_code.print_code()
-    assembly_code.print_code()
-    # symbol_table.print_symbol_table()
+    # assembly_code.print_code()
+    symbol_table.print_symbol_table()
     return
 
 def p_ImportDeclList(p):
@@ -385,13 +385,15 @@ def p_PointerType(p):
 def p_ArrayType(p):
     '''ArrayType : LSQUARE ArrayLength RSQUARE Type
     '''
+    p[0] = TreeNode('ArrayType', p[2].data,p[4].data)
     parsed.append(p.slice)
     return
 
 def p_ArrayLength(p):
     '''ArrayLength : Expression
     '''
-    parsed.append(p.slice)
+    p[0] = p[1]
+    p[0].name ='ArrayLength'
     return
 
 def p_StructType(p):
@@ -569,22 +571,24 @@ def p_VarSpec(p):
 
     else:
         p[1] = TreeNode('IDENTIFIER',p[1],'INT',1)
-        if p[1].isLvalue == 0:
-            print_error("Lvalue required")
-            return
-        else:
-            if symbol_table.add_identifier(p[1]) == False:
+
+        if p[2].input_type != 'NONE':
+            # array case
+            p[2].print_node()
+            if symbol_table.add_identifier(p[1],p[2].data) == False:
                 print_error("Unable to add to SymbolTable")
                 return
-        expr = TreeNode('Expr', 0, 'NONE')
-        if len(p) == 4:
-            expr = p[3]
-            p[0].TAC.append_TAC(p[3].TAC)
-            p[0].TAC.add_line(['=', check_variable(p[1]), check_variable(expr), ''])
-        elif len(p) == 5:
-            expr = p[4]
-            p[0].TAC.append_TAC(p[4].TAC)
-            p[0].TAC.add_line(['=', check_variable(p[1]), check_variable(expr), ''])
+
+        p[0] = TreeNode('VarSpec',p[1].data,'INT')
+        # expr = TreeNode('Expr', 0, 'NONE')
+        # if len(p) == 4:
+        #     expr = p[3]
+        #     p[0].TAC.append_TAC(p[3].TAC)
+        #     p[0].TAC.add_line(['=', check_variable(p[1]), check_variable(expr), ''])
+        # elif len(p) == 5:
+        #     expr = p[4]
+        #     p[0].TAC.append_TAC(p[4].TAC)
+        #     p[0].TAC.add_line(['=', check_variable(p[1]), check_variable(expr), ''])
     return
 
 def p_FunctionDecl(p):
