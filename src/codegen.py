@@ -13,6 +13,7 @@ registers = Registers()
 input_file = ''
 
 start_main = 0
+start_param = 0
 
 def convert_tac(ThreeAddressCode):
     """Reads three adress code generated from parser and converts to TAC for codegen;
@@ -106,6 +107,7 @@ def generate_assembly(three_addr_code,var_list,symbol_table):
 def translator(three_addr_instr,symbol_table):
     """Translate Three Address Instruction to Assembly"""
     global start_main
+    global start_param
 
     # parse three_addr_instr
     line_no = int(three_addr_instr[0])
@@ -118,10 +120,10 @@ def translator(three_addr_instr,symbol_table):
     #### if variable has [] then take that from memory location
 
     if instr_op == 'stack_push':
+        assembly_code.add_line('sub $sp, $sp, 4')
         assembly_code.add_line('sw $ra, ($sp)')
         assembly_code.add_line('sub $sp, $sp, 4')
         assembly_code.add_line('sw $fp, ($sp)')
-        assembly_code.add_line('sub $sp, $sp, 4')
         return 0
 
     if instr_op == 'label':
@@ -156,6 +158,10 @@ def translator(three_addr_instr,symbol_table):
 
     if instr_op == 'call':
         assembly_code.add_line('jal func_' + dest)
+        for r in reversed(registers.registers):
+            assembly_code.add_line('lw ' + r + ', ($sp)')
+            assembly_code.add_line('addiu $sp, $sp, 4')
+        start_param = 0
         return 0
 
 
@@ -164,6 +170,11 @@ def translator(three_addr_instr,symbol_table):
         reg_dest = registers.get_register(dest, symbol_table, line_no, assembly_code)
 
     if instr_op == 'putparam':
+        if start_param == 0:
+            for r in registers.registers:
+                assembly_code.add_line('sub $sp, $sp, 4')
+                assembly_code.add_line('sw ' + r + ', ($sp)')
+            start_param = 1
         assembly_code.add_line('sub $sp, $sp, 4')
         assembly_code.add_line('sw ' + reg_dest + ', ($sp)')
         return 0
@@ -192,9 +203,9 @@ def translator(three_addr_instr,symbol_table):
         if dest != '':
             assembly_code.add_line('move $v0, ' + reg_dest)
 
-        assembly_code.add_line('lw $ra, ($sp)')
-        assembly_code.add_line('addiu $sp, $sp, 4')
         assembly_code.add_line('lw $fp, ($sp)')
+        assembly_code.add_line('addiu $sp, $sp, 4')
+        assembly_code.add_line('lw $ra, ($sp)')
         assembly_code.add_line('addiu $sp, $sp, 4')
         assembly_code.add_line('jr $ra')
         return 0

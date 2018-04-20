@@ -35,10 +35,12 @@ def gen(s):
 
 def print_error(err):
     print "*** Error: " + err + "! ***"
-    sys.exit(1)
+    # sys.exit(1)
 
 def check_variable(TreeNode):
     # return 2 values. first is the name for the variable, second is 0 if variable not found
+    # TreeNode.print_node()
+    # symbol_table.print_symbol_table()
     if TreeNode.isLvalue == 1:
         if TreeNode.data not in generated['temp']:
             name = symbol_table.search_identifier(TreeNode.data)
@@ -1011,6 +1013,7 @@ def p_PrimaryExpr(p):
             p[0] = TreeNode('IDENTIFIER', gen('temp'), 'INT', 1)
             p[0].TAC.append_TAC(p[1].TAC)
 
+            # p[1].print_node()
             func = check_variable(p[1]).split("_")
             scope, funcName =  "_".join(func[:2]), "_".join(func[2:])
 
