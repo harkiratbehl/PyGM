@@ -77,7 +77,10 @@ def generate_assembly(three_addr_code,var_list,symbol_table):
     #declaring variables from list of variables
     for var in var_list:
         if var.size == []:
-            line = '%s:\t.word 0' % var.name
+            if var.parameters == []:
+                line = '%s:\t.word 0' % var.name
+            else:
+                line = var.name + ':\t.asciiz \"' + var.parameters[0].name + '\"'
         else:
             space = 4*int(var.size)
             line = var.name + ':\t.space ' + str(space) 
@@ -140,6 +143,12 @@ def translator(three_addr_instr,symbol_table):
 
     if instr_op == 'continue':
         assembly_code.add_line('j ' + dest)
+        return 0
+
+    if instr_op == 'print_str':
+        assembly_code.add_line('la $a0, ' + dest)
+        assembly_code.add_line('li $v0, 4')
+        assembly_code.add_line('syscall')
         return 0
 
     if instr_op == 'func':

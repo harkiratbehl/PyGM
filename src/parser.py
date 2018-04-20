@@ -24,7 +24,8 @@ parsed = []
 symbol_table = SymbolTable()
 var_list = []
 
-generated = {'temp': [], 'scope': ['scope_0'], 'label': []}
+
+generated = {'temp': [], 'scope': ['scope_0'], 'label': [], 'str_list': []}
 
 def gen(s):
     if s not in generated.keys():
@@ -63,7 +64,11 @@ def check_variable(TreeNode):
             symbol_table.add_var(newNode)
             return TreeNode.data
     else:
-        return TreeNode.data
+        if TreeNode.input_type != 'STRING':
+            return TreeNode.data
+        else:
+            TreeNode.print_node()
+            return TreeNode.data
 
 precedence = (
     ('left','IDENTIFIER'),
@@ -215,6 +220,7 @@ def p_Statement(p):
                  | ContinueStmt
                  | GotoStmt
                  | PrintIntStmt
+                 | PrintStrStmt
     '''
     parsed.append(p.slice)
     p[0] = p[1]
@@ -223,15 +229,27 @@ def p_Statement(p):
 
 def p_PrintIntStmt(p):
     '''PrintIntStmt : PRINTLN LROUND IDENTIFIER RROUND
-                    | PRINTLN LROUND BasicLit RROUND
+                    | PRINTLN LROUND int_lit RROUND
     '''
-    if hasattr(p[3], 'name') and p[3].name == 'BasicLit':
+    if hasattr(p[3], 'name') and p[3].name == 'int_lit':
         p[0] = p[3]
         # p[0].isLvalue = 0
     else:
         p[0] = TreeNode('IDENTIFIER', p[3], 'INT', 1, [])
     p[0].TAC.add_line(['print_int', check_variable(p[0]), '', ''])
     p[0].name = 'PrintIntStmt'
+    return
+
+def p_PrintStrStmt(p):
+    '''PrintStrStmt : PRINTLN LROUND string_lit RROUND
+    '''
+    p[0] = p[3]
+    name = symbol_table.current_scope + '_' + gen('str_list')
+    parametersNode = SymbolTableNode(p[3].data, p[3].input_type)
+    newNode = SymbolTableNode(name, p[3].input_type, parameters = [parametersNode])
+    symbol_table.add_var(newNode)
+    p[0].TAC.add_line(['print_str', name, '', ''])
+    p[0].name = 'PrintStrStmt'
     return
 
 def p_Declaration(p):
