@@ -77,7 +77,7 @@ class SymbolTable:
         for node in self.symbol_table[scope]['identifiers']:
             if TreeNode.data == node.name:
                 return True
-        newNode = SymbolTableNode(TreeNode.data, TreeNode.input_type,size = size)
+        newNode = SymbolTableNode(TreeNode.data, TreeNode.input_type, size = size)
         self.symbol_table[scope]['identifiers'] += [newNode]
         return True
 

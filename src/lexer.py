@@ -143,7 +143,7 @@ def t_RETURN(t):
 
 def t_PRINTLN(t):
     r'Println'
-    setSemiMode()
+    # setSemiMode()
     return t
 
 # Note: We need to have tokens in such a way that
