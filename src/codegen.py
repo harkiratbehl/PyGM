@@ -75,7 +75,11 @@ def generate_assembly(three_addr_code,var_list,symbol_table):
 
     #declaring variables from list of variables
     for var in var_list:
-        line = '%s:\t.word 0' % var
+        if var.size == []:
+            line = '%s:\t.word 0' % var.name
+        else:
+            space = 4*int(var.size)
+            line = var.name + ':\t.space ' + str(space) 
         assembly_code.add_line(line)
 
     # functions
@@ -110,6 +114,8 @@ def translator(three_addr_instr,symbol_table):
     dest = three_addr_instr[2]
     src1 = three_addr_instr[3]
     src2 = three_addr_instr[4]
+
+    #### if variable has [] then take that from memory location
 
     if instr_op == 'stack_push':
         assembly_code.add_line('sw $ra, ($sp)')

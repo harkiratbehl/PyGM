@@ -144,8 +144,15 @@ class SymbolTable:
     def make_var_list(self):
         for y in self.symbol_table.keys():
             for x in self.symbol_table[y]['allvars']:
-                if x.name not in self.var_list:
-                    self.var_list += [x.name]
+                if self.var_list ==[]:
+                    self.var_list += [x]
+                else:
+                    al =0 
+                    for y in self.var_list:
+                        if y.name == x.name:
+                            al=1
+                    if al==0:   
+                        self.var_list += [x]
         return self.var_list
 
     def fill_next_use(self,three_address_code):
@@ -153,7 +160,7 @@ class SymbolTable:
 
         # Initializing symbol_table values for each variable
         for var in self.var_list:
-            self.next_use[var] = [sys.maxsize * ones(line_count), 0]
+            self.next_use[var.name] = [sys.maxsize * ones(line_count), 0]
 
         # traversing the three_address_code in reverse order
         for i in range(line_count):
@@ -164,9 +171,9 @@ class SymbolTable:
 
             for line_no in range(0, j):
                 if var1 in self.var_list:
-                    self.next_use[var1][0][line_no] = j + 1
+                    self.next_use[var1.name][0][line_no] = j + 1
                 if var2 in self.var_list:
-                    self.next_use[var2][0][line_no] = j + 1
+                    self.next_use[var2.name][0][line_no] = j + 1
 
     # def add_node(self, node):
         # """Adds a node to the SymbolTable"""

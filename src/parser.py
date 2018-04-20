@@ -52,7 +52,10 @@ def check_variable(TreeNode):
             else:
                 newNode = SymbolTableNode(name, TreeNode.input_type)
                 symbol_table.add_var(newNode)
-                return name
+                if TreeNode.children == []:
+                    return name
+                else:
+                    return name + '[' + TreeNode.children + ']'
         else:
             newNode = SymbolTableNode(TreeNode.data, TreeNode.input_type)
             symbol_table.add_var(newNode)
@@ -104,8 +107,8 @@ def p_SourceFile(p):
     assembly_code = generate_assembly(three_addr_code,var_list,symbol_table)
     # p[0].TAC.print_code()
     # three_addr_code.print_code()
-    # assembly_code.print_code()
-    symbol_table.print_symbol_table()
+    assembly_code.print_code()
+    # symbol_table.print_symbol_table()
     return
 
 def p_ImportDeclList(p):
@@ -575,10 +578,12 @@ def p_VarSpec(p):
         if p[2].input_type != 'NONE':
             # array case
             p[2].print_node()
-            if symbol_table.add_identifier(p[1],p[2].data) == False:
+            if symbol_table.add_identifier(p[1],size = p[2].data) == False:
                 print_error("Unable to add to SymbolTable")
                 return
-
+            name = symbol_table.search_identifier(p[1].data)
+            newNode = SymbolTableNode(name, p[1].input_type,size = p[2].data)
+            symbol_table.add_var(newNode)
         p[0] = TreeNode('VarSpec',p[1].data,'INT')
         # expr = TreeNode('Expr', 0, 'NONE')
         # if len(p) == 4:
@@ -1022,6 +1027,10 @@ def p_PrimaryExpr(p):
                 print_error('Function requires ' + str(temp) + ' parameters but ' + str(p[2].data) + ' have been supplied')
             p[0].TAC.add_line(['call', check_variable(p[1]), str(p[2].data), ''])
             p[0].TAC.add_line(['return_value', check_variable(p[0]), '', ''])
+
+        elif p[2].name == 'Index':
+            p[0] = TreeNode('IDENTIFIER', p[1].data, 'INT', 1,children = p[2].data)
+
     p[0].name = 'PrimaryExpr'
     return
 
@@ -1112,6 +1121,8 @@ def p_Selector(p):
 def p_Index(p):
     '''Index : LSQUARE Expression RSQUARE
     '''
+    p[0] = p[2]
+    p[0].name = 'Index'
     parsed.append(p.slice)
     return
 
